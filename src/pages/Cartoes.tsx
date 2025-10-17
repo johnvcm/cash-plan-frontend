@@ -60,14 +60,14 @@ const Cartoes = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Cartões de Crédito</h1>
-          <p className="text-muted-foreground">Gerencie seus cartões e limites</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Cartões de Crédito</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Gerencie seus cartões e limites</p>
         </div>
         <Button
-          className="bg-gradient-primary hover:bg-primary-hover"
+          className="bg-gradient-primary hover:bg-primary-hover w-full sm:w-auto"
           onClick={handleNewCard}
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -75,7 +75,7 @@ const Cartoes = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
         <Card className="shadow-card">
           <CardContent className="p-6">
             <p className="text-sm font-medium text-muted-foreground">Total utilizado</p>
@@ -104,9 +104,9 @@ const Cartoes = () => {
 
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Meus Cartões</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Meus Cartões</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4">
           {cards && cards.length > 0 ? (
             cards.map((card) => (
               <CreditCardCard
@@ -120,7 +120,7 @@ const Cartoes = () => {
               />
             ))
           ) : (
-            <p className="text-muted-foreground text-center py-8">
+            <p className="text-sm text-muted-foreground text-center py-8">
               Nenhum cartão cadastrado
             </p>
           )}

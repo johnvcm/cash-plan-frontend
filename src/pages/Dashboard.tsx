@@ -132,14 +132,14 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Visão geral das suas finanças</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Visão geral das suas finanças</p>
         </div>
         <Button 
-          className="bg-gradient-primary hover:bg-primary-hover"
+          className="bg-gradient-primary hover:bg-primary-hover w-full sm:w-auto"
           onClick={handleNewTransaction}
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -147,7 +147,7 @@ const Dashboard = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Saldo Total"
           value={formatCurrency(totalBalance)}
@@ -175,16 +175,16 @@ const Dashboard = () => {
         />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
         <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Contas Bancárias</CardTitle>
-            <Button variant="outline" size="sm" onClick={handleNewAccount}>
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="text-lg sm:text-xl">Contas Bancárias</CardTitle>
+            <Button variant="outline" size="sm" onClick={handleNewAccount} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Adicionar
             </Button>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 sm:space-y-4">
             {accounts && accounts.length > 0 ? (
               accounts.slice(0, 3).map((account) => (
                 <AccountCard
@@ -199,7 +199,7 @@ const Dashboard = () => {
                 />
               ))
             ) : (
-              <p className="text-muted-foreground text-center py-4">
+              <p className="text-sm text-muted-foreground text-center py-4">
                 Nenhuma conta cadastrada
               </p>
             )}
@@ -207,14 +207,14 @@ const Dashboard = () => {
         </Card>
 
         <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Cartões de Crédito</CardTitle>
-            <Button variant="outline" size="sm" onClick={handleNewCard}>
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="text-lg sm:text-xl">Cartões de Crédito</CardTitle>
+            <Button variant="outline" size="sm" onClick={handleNewCard} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Adicionar
             </Button>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 sm:space-y-4">
             {cards && cards.length > 0 ? (
               cards.slice(0, 3).map((card) => (
                 <CreditCardCard 
@@ -225,7 +225,7 @@ const Dashboard = () => {
                 />
               ))
             ) : (
-              <p className="text-muted-foreground text-center py-4">
+              <p className="text-sm text-muted-foreground text-center py-4">
                 Nenhum cartão cadastrado
               </p>
             )}
@@ -235,9 +235,9 @@ const Dashboard = () => {
 
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Últimas Transações</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Últimas Transações</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-1 sm:space-y-2">
           {transactions && transactions.length > 0 ? (
             transactions.slice(0, 5).map((transaction) => (
               <TransactionItem 
@@ -248,7 +248,7 @@ const Dashboard = () => {
               />
             ))
           ) : (
-            <p className="text-muted-foreground text-center py-4">
+            <p className="text-sm text-muted-foreground text-center py-4">
               Nenhuma transação registrada
             </p>
           )}

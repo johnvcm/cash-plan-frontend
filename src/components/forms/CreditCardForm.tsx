@@ -96,11 +96,11 @@ export function CreditCardForm({ open, onOpenChange, card }: CreditCardFormProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Editar Cartão" : "Novo Cartão"}</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">{isEditing ? "Editar Cartão" : "Novo Cartão"}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Nome do Cartão</Label>
             <Input
@@ -169,15 +169,16 @@ export function CreditCardForm({ open, onOpenChange, card }: CreditCardFormProps
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
               {isSubmitting
                 ? "Salvando..."
                 : isEditing

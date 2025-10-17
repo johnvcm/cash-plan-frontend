@@ -113,11 +113,11 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Editar Lançamento" : "Novo Lançamento"}</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">{isEditing ? "Editar Lançamento" : "Novo Lançamento"}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
           <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
             <Input
@@ -161,7 +161,7 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="date">Data</Label>
               <Input
@@ -209,15 +209,16 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
             </Select>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
               {isSubmitting
                 ? "Salvando..."
                 : isEditing

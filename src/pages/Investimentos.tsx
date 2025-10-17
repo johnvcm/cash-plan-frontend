@@ -61,14 +61,14 @@ const Investimentos = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Investimentos</h1>
-          <p className="text-muted-foreground">Acompanhe seus investimentos e rentabilidade</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Investimentos</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Acompanhe seus investimentos e rentabilidade</p>
         </div>
         <Button
-          className="bg-gradient-primary hover:bg-primary-hover"
+          className="bg-gradient-primary hover:bg-primary-hover w-full sm:w-auto"
           onClick={handleNewInvestment}
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -76,7 +76,7 @@ const Investimentos = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
         <StatCard
           title="Total Investido"
           value={formatCurrency(totalInvested)}
@@ -101,7 +101,7 @@ const Investimentos = () => {
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle>Distribuição por Tipo</CardTitle>
@@ -152,61 +152,65 @@ const Investimentos = () => {
 
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Meus Investimentos</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Meus Investimentos</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4">
           {investments && investments.length > 0 ? (
             investments.map((investment) => (
               <div
                 key={investment.id}
-                className="flex items-center justify-between p-4 rounded-lg hover:bg-muted/50 transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 rounded-lg hover:bg-muted/50 transition-colors"
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 flex-1">
                   <div
-                    className="h-12 w-12 rounded-lg flex items-center justify-center"
+                    className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: investment.color || "#10B981" }}
                   >
-                    <TrendingUp className="h-6 w-6 text-white" />
+                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                   </div>
-                  <div>
-                    <p className="font-semibold text-foreground">{investment.name}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground truncate">{investment.name}</p>
                     <p className="text-sm text-muted-foreground">{investment.type}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold text-foreground">{formatCurrency(investment.value)}</p>
-                  <p
-                    className={`text-sm font-medium ${
-                      investment.return_rate >= 0 ? "text-success" : "text-destructive"
-                    }`}
-                  >
-                    {investment.return_rate >= 0 ? "+" : ""}
-                    {investment.return_rate.toFixed(2)}%
-                  </p>
-                </div>
-                <div className="flex gap-2 ml-4">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleEdit(investment)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => {
-                      setInvestmentToDelete(investment.id);
-                      setDeleteDialogOpen(true);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
+                  <div className="text-left sm:text-right">
+                    <p className="font-semibold text-foreground text-sm sm:text-base">{formatCurrency(investment.value)}</p>
+                    <p
+                      className={`text-xs sm:text-sm font-medium ${
+                        investment.return_rate >= 0 ? "text-success" : "text-destructive"
+                      }`}
+                    >
+                      {investment.return_rate >= 0 ? "+" : ""}
+                      {investment.return_rate.toFixed(2)}%
+                    </p>
+                  </div>
+                  <div className="flex gap-1 sm:gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleEdit(investment)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => {
+                        setInvestmentToDelete(investment.id);
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))
           ) : (
-            <p className="text-muted-foreground text-center py-8">
+            <p className="text-sm text-muted-foreground text-center py-8">
               Nenhum investimento cadastrado
             </p>
           )}

@@ -75,14 +75,14 @@ const Lancamentos = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Lançamentos</h1>
-          <p className="text-muted-foreground">Gerencie suas receitas e despesas</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Lançamentos</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Gerencie suas receitas e despesas</p>
         </div>
         <Button
-          className="bg-gradient-primary hover:bg-primary-hover"
+          className="bg-gradient-primary hover:bg-primary-hover w-full sm:w-auto"
           onClick={handleNewTransaction}
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -90,7 +90,7 @@ const Lancamentos = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
         <Card className="shadow-card">
           <CardContent className="p-6">
             <p className="text-sm font-medium text-muted-foreground">Receitas</p>
@@ -119,17 +119,17 @@ const Lancamentos = () => {
 
       <Card className="shadow-card">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Todos os Lançamentos</CardTitle>
-            <div className="flex gap-2">
+          <div className="flex flex-col gap-3">
+            <CardTitle className="text-lg sm:text-xl">Todos os Lançamentos</CardTitle>
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input 
                 placeholder="Buscar..." 
-                className="w-64" 
+                className="flex-1 sm:max-w-xs" 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
               <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Filtrar" />
                 </SelectTrigger>
@@ -142,7 +142,7 @@ const Lancamentos = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-1 sm:space-y-2">
           {filteredTransactions && filteredTransactions.length > 0 ? (
             filteredTransactions.map((transaction) => (
               <TransactionItem
@@ -156,7 +156,7 @@ const Lancamentos = () => {
               />
             ))
           ) : (
-            <p className="text-muted-foreground text-center py-8">
+            <p className="text-sm text-muted-foreground text-center py-8">
               Nenhum lançamento encontrado
             </p>
           )}

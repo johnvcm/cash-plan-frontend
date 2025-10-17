@@ -66,14 +66,14 @@ const Contas = () => {
     `R$ ${investments.toFixed(2).replace(".", ",")}`;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Minhas Contas</h1>
-          <p className="text-muted-foreground">Gerencie suas contas bancárias</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Minhas Contas</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Gerencie suas contas bancárias</p>
         </div>
         <Button
-          className="bg-gradient-primary hover:bg-primary-hover"
+          className="bg-gradient-primary hover:bg-primary-hover w-full sm:w-auto"
           onClick={handleNewAccount}
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -81,7 +81,7 @@ const Contas = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
         <Card className="shadow-card">
           <CardContent className="p-6">
             <p className="text-sm font-medium text-muted-foreground">Total em contas correntes</p>
@@ -102,9 +102,9 @@ const Contas = () => {
 
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Contas Bancárias</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Contas Bancárias</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4">
           {accounts && accounts.length > 0 ? (
             accounts.map((account) => (
               <AccountCard
@@ -122,7 +122,7 @@ const Contas = () => {
               />
             ))
           ) : (
-            <p className="text-muted-foreground text-center py-8">
+            <p className="text-sm text-muted-foreground text-center py-8">
               Nenhuma conta cadastrada
             </p>
           )}

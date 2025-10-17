@@ -54,21 +54,21 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
-      <Card className="w-full max-w-md shadow-2xl">
-        <CardHeader className="space-y-3 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-3 sm:p-4">
+      <Card className="w-full max-w-md shadow-2xl mx-auto">
+        <CardHeader className="space-y-2 sm:space-y-3 text-center px-4 sm:px-6 pt-6">
           <div className="flex justify-center">
-            <div className="h-16 w-16 rounded-full bg-gradient-primary flex items-center justify-center">
-              <Wallet className="h-8 w-8 text-white" />
+            <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-gradient-primary flex items-center justify-center">
+              <Wallet className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
             </div>
           </div>
-          <CardTitle className="text-3xl font-bold">Criar Conta</CardTitle>
-          <CardDescription className="text-base">
+          <CardTitle className="text-2xl sm:text-3xl font-bold">Criar Conta</CardTitle>
+          <CardDescription className="text-sm sm:text-base">
             Comece a gerenciar suas finanças hoje mesmo
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <CardContent className="px-4 sm:px-6">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             <div className="space-y-2">
               <Label htmlFor="full_name">Nome Completo (opcional)</Label>
               <Input
