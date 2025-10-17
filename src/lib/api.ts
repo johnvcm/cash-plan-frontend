@@ -1,5 +1,10 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 export const api = {
   baseUrl: API_BASE_URL,
 
@@ -10,9 +15,17 @@ export const api = {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        ...getAuthHeaders(),
         ...options?.headers,
       },
     });
+
+    // Se receber 401 (não autorizado), redireciona para login
+    if (response.status === 401) {
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+      throw new Error("Unauthorized");
+    }
 
     if (!response.ok) {
       throw new Error(`API Error: ${response.status} ${response.statusText}`);
