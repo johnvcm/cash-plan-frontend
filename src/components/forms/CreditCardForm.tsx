@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { z } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,7 @@ const creditCardSchema = z.object({
   bank: z.string().min(1, "Bandeira/Banco é obrigatório"),
   used: z.number().min(0, "Valor utilizado deve ser positivo"),
   limit: z.number().min(0, "Limite deve ser positivo"),
-  color: z.string().optional(),
+  color: z.string().default("#3B82F6"),
 });
 
 type CreditCardFormData = z.infer<typeof creditCardSchema>;
@@ -78,7 +78,13 @@ export function CreditCardForm({ open, onOpenChange, card }: CreditCardFormProps
         await updateCard.mutateAsync({ id: card.id, data });
         toast.success("Cartão atualizado com sucesso!");
       } else {
-        await createCard.mutateAsync(data);
+        await createCard.mutateAsync({
+          name: data.name,
+          bank: data.bank,
+          used: data.used,
+          limit: data.limit,
+          color: data.color || "#3B82F6",
+        });
         toast.success("Cartão criado com sucesso!");
       }
       onOpenChange(false);

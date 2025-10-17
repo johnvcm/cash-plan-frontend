@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { z } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,7 @@ const goalSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   target: z.number().min(0, "Meta deve ser positiva"),
   current: z.number().min(0, "Valor atual deve ser positivo"),
-  color: z.string().optional(),
+  color: z.string().default("#10B981"),
 });
 
 type GoalFormData = z.infer<typeof goalSchema>;
@@ -74,7 +74,12 @@ export function GoalForm({ open, onOpenChange, goal }: GoalFormProps) {
         await updateGoal.mutateAsync({ id: goal.id, data });
         toast.success("Meta atualizada com sucesso!");
       } else {
-        await createGoal.mutateAsync(data);
+        await createGoal.mutateAsync({
+          name: data.name,
+          target: data.target,
+          current: data.current,
+          color: data.color || "#10B981",
+        });
         toast.success("Meta criada com sucesso!");
       }
       onOpenChange(false);

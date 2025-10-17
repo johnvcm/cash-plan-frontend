@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { z } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -94,7 +94,14 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
         await updateTransaction.mutateAsync({ id: transaction.id, data });
         toast.success("Lançamento atualizado com sucesso!");
       } else {
-        await createTransaction.mutateAsync(data);
+        await createTransaction.mutateAsync({
+          description: data.description,
+          category: data.category,
+          date: data.date,
+          amount: data.amount,
+          type: data.type as "income" | "expense",
+          account_id: data.account_id,
+        });
         toast.success("Lançamento criado com sucesso!");
       }
       onOpenChange(false);
