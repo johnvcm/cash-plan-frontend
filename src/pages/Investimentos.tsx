@@ -1,42 +1,49 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, TrendingUp } from "lucide-react";
+import { Plus, TrendingUp, Edit, Trash2 } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
+import { useInvestments, useDeleteInvestment, Investment } from "@/hooks/use-api";
+import { InvestmentForm } from "@/components/forms/InvestmentForm";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { toast } from "sonner";
 
 const Investimentos = () => {
-  const investments = [
-    {
-      name: "Tesouro Selic 2029",
-      type: "Renda Fixa",
-      value: 5000,
-      return: 12.5,
-      color: "#10B981",
-    },
-    {
-      name: "CDB Banco X",
-      type: "Renda Fixa",
-      value: 3000,
-      return: 10.2,
-      color: "#3B82F6",
-    },
-    {
-      name: "Ações PETR4",
-      type: "Renda Variável",
-      value: 2500,
-      return: -5.3,
-      color: "#8B5CF6",
-    },
-    {
-      name: "Fundos Imobiliários",
-      type: "Renda Variável",
-      value: 1500,
-      return: 8.7,
-      color: "#F59E0B",
-    },
-  ];
+  const { data: investments, isLoading } = useInvestments();
+  const deleteInvestment = useDeleteInvestment();
+  
+  const [formOpen, setFormOpen] = useState(false);
+  const [selectedInvestment, setSelectedInvestment] = useState<Investment | undefined>();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [investmentToDelete, setInvestmentToDelete] = useState<number | null>(null);
 
-  const totalInvested = investments.reduce((sum, inv) => sum + inv.value, 0);
-  const averageReturn = investments.reduce((sum, inv) => sum + inv.return, 0) / investments.length;
+  const handleEdit = (investment: Investment) => {
+    setSelectedInvestment(investment);
+    setFormOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (investmentToDelete) {
+      try {
+        await deleteInvestment.mutateAsync(investmentToDelete);
+        toast.success("Investimento deletado com sucesso!");
+        setDeleteDialogOpen(false);
+        setInvestmentToDelete(null);
+      } catch (error) {
+        toast.error("Erro ao deletar investimento");
+      }
+    }
+  };
+
+  const handleNewInvestment = () => {
+    setSelectedInvestment(undefined);
+    setFormOpen(true);
+  };
+
+  const totalInvested = investments?.reduce((sum, inv) => sum + inv.value, 0) || 0;
+  const averageReturn = investments && investments.length > 0
+    ? investments.reduce((sum, inv) => sum + inv.return_rate, 0) / investments.length
+    : 0;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -45,6 +52,14 @@ const Investimentos = () => {
     }).format(value);
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-lg text-muted-foreground">Carregando investimentos...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -52,7 +67,10 @@ const Investimentos = () => {
           <h1 className="text-3xl font-bold text-foreground">Investimentos</h1>
           <p className="text-muted-foreground">Acompanhe seus investimentos e rentabilidade</p>
         </div>
-        <Button className="bg-gradient-primary hover:bg-primary-hover">
+        <Button
+          className="bg-gradient-primary hover:bg-primary-hover"
+          onClick={handleNewInvestment}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Novo Investimento
         </Button>
@@ -137,38 +155,78 @@ const Investimentos = () => {
           <CardTitle>Meus Investimentos</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {investments.map((investment, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-between p-4 rounded-lg hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-center gap-4">
-                <div
-                  className="h-12 w-12 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: investment.color }}
-                >
-                  <TrendingUp className="h-6 w-6 text-white" />
+          {investments && investments.length > 0 ? (
+            investments.map((investment) => (
+              <div
+                key={investment.id}
+                className="flex items-center justify-between p-4 rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className="h-12 w-12 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: investment.color || "#10B981" }}
+                  >
+                    <TrendingUp className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">{investment.name}</p>
+                    <p className="text-sm text-muted-foreground">{investment.type}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-foreground">{investment.name}</p>
-                  <p className="text-sm text-muted-foreground">{investment.type}</p>
+                <div className="text-right">
+                  <p className="font-semibold text-foreground">{formatCurrency(investment.value)}</p>
+                  <p
+                    className={`text-sm font-medium ${
+                      investment.return_rate >= 0 ? "text-success" : "text-destructive"
+                    }`}
+                  >
+                    {investment.return_rate >= 0 ? "+" : ""}
+                    {investment.return_rate.toFixed(2)}%
+                  </p>
+                </div>
+                <div className="flex gap-2 ml-4">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleEdit(investment)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      setInvestmentToDelete(investment.id);
+                      setDeleteDialogOpen(true);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="font-semibold text-foreground">{formatCurrency(investment.value)}</p>
-                <p
-                  className={`text-sm font-medium ${
-                    investment.return >= 0 ? "text-success" : "text-destructive"
-                  }`}
-                >
-                  {investment.return >= 0 ? "+" : ""}
-                  {investment.return.toFixed(2)}%
-                </p>
-              </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-muted-foreground text-center py-8">
+              Nenhum investimento cadastrado
+            </p>
+          )}
         </CardContent>
       </Card>
+
+      <InvestmentForm
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        investment={selectedInvestment}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDelete}
+        title="Deletar Investimento"
+        description="Tem certeza que deseja deletar este investimento? Esta ação não pode ser desfeita."
+        isLoading={deleteInvestment.isPending}
+      />
     </div>
   );
 };

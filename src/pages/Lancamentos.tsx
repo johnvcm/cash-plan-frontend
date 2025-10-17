@@ -11,60 +11,68 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTransactions, useDeleteTransaction, Transaction } from "@/hooks/use-api";
+import { TransactionForm } from "@/components/forms/TransactionForm";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { toast } from "sonner";
 
 const Lancamentos = () => {
-  const [transactions] = useState([
-    {
-      id: 1,
-      description: "Salário Outubro",
-      category: "Renda",
-      date: "2025-10-01",
-      amount: 5000,
-      type: "income" as const,
-    },
-    {
-      id: 2,
-      description: "Mercado",
-      category: "Despesas obrigatórias",
-      date: "2025-10-05",
-      amount: -350,
-      type: "expense" as const,
-    },
-    {
-      id: 3,
-      description: "Aluguel",
-      category: "Despesas obrigatórias",
-      date: "2025-10-10",
-      amount: -1200,
-      type: "expense" as const,
-    },
-    {
-      id: 4,
-      description: "Freelance",
-      category: "Renda Cliente",
-      date: "2025-10-15",
-      amount: 2500,
-      type: "income" as const,
-    },
-    {
-      id: 5,
-      description: "Conta de Luz",
-      category: "Despesas obrigatórias",
-      date: "2025-10-08",
-      amount: -180,
-      type: "expense" as const,
-    },
-  ]);
+  const { data: transactions, isLoading } = useTransactions();
+  const deleteTransaction = useDeleteTransaction();
+  
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | undefined>();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<number | null>(null);
+
+  const handleEdit = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setFormOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (transactionToDelete) {
+      try {
+        await deleteTransaction.mutateAsync(transactionToDelete);
+        toast.success("Lançamento deletado com sucesso!");
+        setDeleteDialogOpen(false);
+        setTransactionToDelete(null);
+      } catch (error) {
+        toast.error("Erro ao deletar lançamento");
+      }
+    }
+  };
+
+  const handleNewTransaction = () => {
+    setSelectedTransaction(undefined);
+    setFormOpen(true);
+  };
+
+  const filteredTransactions = transactions?.filter((t) => {
+    const matchesFilter = filter === "all" || t.type === filter;
+    const matchesSearch = t.description.toLowerCase().includes(search.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
 
   const totalIncome = transactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
+    ?.filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0) || 0;
 
   const totalExpenses = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    ?.filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
 
   const balance = totalIncome - totalExpenses;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-lg text-muted-foreground">Carregando lançamentos...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -73,7 +81,10 @@ const Lancamentos = () => {
           <h1 className="text-3xl font-bold text-foreground">Lançamentos</h1>
           <p className="text-muted-foreground">Gerencie suas receitas e despesas</p>
         </div>
-        <Button className="bg-gradient-primary hover:bg-primary-hover">
+        <Button
+          className="bg-gradient-primary hover:bg-primary-hover"
+          onClick={handleNewTransaction}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Novo Lançamento
         </Button>
@@ -111,8 +122,13 @@ const Lancamentos = () => {
           <div className="flex items-center justify-between">
             <CardTitle>Todos os Lançamentos</CardTitle>
             <div className="flex gap-2">
-              <Input placeholder="Buscar..." className="w-64" />
-              <Select>
+              <Input 
+                placeholder="Buscar..." 
+                className="w-64" 
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <Select value={filter} onValueChange={setFilter}>
                 <SelectTrigger className="w-40">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Filtrar" />
@@ -127,11 +143,40 @@ const Lancamentos = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
-          {transactions.map((transaction) => (
-            <TransactionItem key={transaction.id} {...transaction} />
-          ))}
+          {filteredTransactions && filteredTransactions.length > 0 ? (
+            filteredTransactions.map((transaction) => (
+              <TransactionItem
+                key={transaction.id}
+                {...transaction}
+                onEdit={() => handleEdit(transaction)}
+                onDelete={() => {
+                  setTransactionToDelete(transaction.id);
+                  setDeleteDialogOpen(true);
+                }}
+              />
+            ))
+          ) : (
+            <p className="text-muted-foreground text-center py-8">
+              Nenhum lançamento encontrado
+            </p>
+          )}
         </CardContent>
       </Card>
+
+      <TransactionForm
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        transaction={selectedTransaction}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDelete}
+        title="Deletar Lançamento"
+        description="Tem certeza que deseja deletar este lançamento? Esta ação não pode ser desfeita."
+        isLoading={deleteTransaction.isPending}
+      />
     </div>
   );
 };
