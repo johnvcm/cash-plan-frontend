@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -93,6 +94,9 @@ export function AccountForm({ open, onOpenChange, account }: AccountFormProps) {
       <DialogContent className="max-w-[95vw] sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl">{isEditing ? "Editar Conta" : "Nova Conta"}</DialogTitle>
+          <DialogDescription>
+            {isEditing ? "Edite os detalhes da sua conta." : "Preencha os dados para criar uma nova conta."}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
           <div className="space-y-2">

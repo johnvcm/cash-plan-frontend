@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -116,6 +117,9 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
       <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl">{isEditing ? "Editar Lançamento" : "Novo Lançamento"}</DialogTitle>
+          <DialogDescription>
+            {isEditing ? "Edite os detalhes do seu lançamento." : "Preencha os dados para criar um novo lançamento."}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
           <div className="space-y-2">

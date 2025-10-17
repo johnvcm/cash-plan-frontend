@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -94,6 +95,9 @@ export function GoalForm({ open, onOpenChange, goal }: GoalFormProps) {
       <DialogContent className="max-w-[95vw] sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl">{isEditing ? "Editar Meta" : "Nova Meta"}</DialogTitle>
+          <DialogDescription>
+            {isEditing ? "Edite os detalhes da sua meta." : "Preencha os dados para criar uma nova meta."}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
           <div className="space-y-2">
