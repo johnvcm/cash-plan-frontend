@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList } from "recharts";
 import { Transaction } from "@/hooks/use-api";
 import { formatCurrency } from "@/lib/format";
 import { TrendingDown, TrendingUp } from "lucide-react";
@@ -16,6 +16,46 @@ const COLORS = {
   expense: ["#EF4444", "#F97316", "#F59E0B", "#EAB308", "#84CC16", "#22C55E", "#10B981", "#14B8A6", "#06B6D4", "#0EA5E9"],
   income: ["#10B981", "#22C55E", "#84CC16", "#EAB308", "#F59E0B", "#06B6D4", "#0EA5E9", "#3B82F6", "#6366F1", "#8B5CF6"],
 };
+
+interface TooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    name: string;
+    value: number;
+    payload: { percentage?: number };
+  }>;
+}
+
+interface BarLabelProps {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  value?: number;
+}
+
+interface TopLabelProps {
+  x?: number;
+  y?: number;
+  width?: number;
+  index?: number;
+}
+
+interface PieLabelProps {
+  cx: number;
+  cy: number;
+  midAngle: number;
+  innerRadius: number;
+  outerRadius: number;
+  percentage: number;
+}
+
+interface LegendProps {
+  value: string;
+  entry: {
+    payload: { percentage: number };
+  };
+}
 
 export function TransactionCharts({ transactions }: TransactionChartsProps) {
   const [period, setPeriod] = useState<PeriodFilter>("30d");
@@ -84,25 +124,48 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
   const stackedBarData = useMemo(() => {
     // Criar objeto com todas as categorias
     const expensesObj: Record<string, number> = {};
+    let totalExpenses = 0;
     expensesByCategory.forEach((cat) => {
       expensesObj[cat.name] = cat.value;
+      totalExpenses += cat.value;
     });
 
     const incomesObj: Record<string, number> = {};
+    let totalIncomes = 0;
     incomesByCategory.forEach((cat) => {
       incomesObj[cat.name] = cat.value;
+      totalIncomes += cat.value;
     });
 
     return [
       {
         type: "Receitas",
+        total: totalIncomes,
         ...incomesObj,
       },
       {
         type: "Despesas",
+        total: totalExpenses,
         ...expensesObj,
       },
     ];
+  }, [expensesByCategory, incomesByCategory]);
+
+  // Mapa de cores por categoria (mantém consistência entre gráficos)
+  const categoryColors = useMemo(() => {
+    const colorMap: Record<string, string> = {};
+    
+    // Atribuir cores para despesas
+    expensesByCategory.forEach((cat, index) => {
+      colorMap[cat.name] = COLORS.expense[index % COLORS.expense.length];
+    });
+    
+    // Atribuir cores para receitas
+    incomesByCategory.forEach((cat, index) => {
+      colorMap[cat.name] = COLORS.income[index % COLORS.income.length];
+    });
+    
+    return colorMap;
   }, [expensesByCategory, incomesByCategory]);
 
   // Obter todas as categorias únicas para as barras
@@ -121,7 +184,7 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
     "all": "Todo o período",
   };
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: TooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
@@ -138,7 +201,60 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
     return null;
   };
 
-  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percentage }: any) => {
+  // Label customizado para cada segmento individual
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const CustomBarLabel = (props: any) => {
+    const { x, y, width, height, value } = props;
+    
+    // Validações
+    if (!value || value === 0) return null;
+    if (!height || height < 30) return null;
+    if (x === undefined || y === undefined || !width) return null;
+
+    return (
+      <text
+        x={x + width / 2}
+        y={y + height / 2}
+        fill="white"
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize="11"
+        fontWeight="bold"
+        style={{ 
+          textShadow: "0px 0px 3px rgba(0,0,0,0.9), 1px 1px 2px rgba(0,0,0,0.9)",
+          pointerEvents: "none"
+        }}
+      >
+        {formatCurrency(value).replace("R$", "").trim()}
+      </text>
+    );
+  };
+
+  // Label para mostrar total no topo da barra
+  const renderTopLabel = (props: TopLabelProps) => {
+    const { x, y, width, index } = props;
+    
+    if (x === undefined || y === undefined || !width || index === undefined) return null;
+    
+    const total = stackedBarData[index]?.total || 0;
+    
+    if (total === 0) return null;
+
+    return (
+      <text
+        x={x + width / 2}
+        y={y - 10}
+        fill="hsl(var(--foreground))"
+        textAnchor="middle"
+        dominantBaseline="middle"
+        className="text-sm font-bold"
+      >
+        {formatCurrency(total)}
+      </text>
+    );
+  };
+
+  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percentage }: PieLabelProps) => {
     if (percentage < 5) return null; // Não mostrar label para fatias muito pequenas
     
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -190,128 +306,68 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
         </CardContent>
       </Card>
 
-      {/* Gráfico de Barras Empilhadas com Categorias */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="text-base sm:text-lg">Receitas vs Despesas por Categoria</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={stackedBarData}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-              <XAxis dataKey="type" />
-              <YAxis tickFormatter={(value) => formatCurrency(value)} />
-              <Tooltip
-                formatter={(value: number) => formatCurrency(value)}
-                contentStyle={{
-                  backgroundColor: "hsl(var(--background))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                }}
-              />
-              <Legend 
-                wrapperStyle={{ fontSize: "12px" }}
-                formatter={(value) => {
-                  // Limitar tamanho do nome da categoria
-                  return value.length > 15 ? value.substring(0, 12) + "..." : value;
-                }}
-              />
-              {allCategories.map((category, index) => {
-                // Usar cores de despesas para categorias de despesas, cores de receitas para receitas
-                const isExpenseCategory = expensesByCategory.some(cat => cat.name === category);
-                const colorArray = isExpenseCategory ? COLORS.expense : COLORS.income;
-                const color = colorArray[index % colorArray.length];
-                
-                return (
-                  <Bar
-                    key={category}
-                    dataKey={category}
-                    stackId="a"
-                    fill={color}
+      {/* Seção de Receitas - Barra + Pizza */}
+      <div>
+        <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+          <TrendingUp className="h-5 w-5 text-success" />
+          Receitas
+        </h3>
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
+          {/* Gráfico de Barras - Receitas */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="text-base sm:text-lg">Composição por Categoria</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={[stackedBarData[0]]}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                  <XAxis dataKey="type" />
+                  <YAxis hide />
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
                   />
-                );
-              })}
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
-        {/* Gráfico de Pizza - Despesas */}
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <TrendingDown className="h-5 w-5 text-destructive" />
-              Despesas por Categoria
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {expensesByCategory.length > 0 ? (
-              <>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={expensesByCategory}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={renderCustomLabel}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {expensesByCategory.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS.expense[index % COLORS.expense.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend
-                      verticalAlign="bottom"
-                      height={36}
-                      formatter={(value, entry: any) => (
-                        <span className="text-xs">
-                          {value} ({entry.payload.percentage.toFixed(1)}%)
-                        </span>
-                      )}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="mt-4 space-y-2">
-                  {expensesByCategory.slice(0, 5).map((cat, index) => (
-                    <div key={cat.name} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: COLORS.expense[index % COLORS.expense.length] }}
+                  {incomesByCategory.map((cat, index) => {
+                    const isLast = index === incomesByCategory.length - 1;
+                    return (
+                      <Bar
+                        key={cat.name}
+                        dataKey={cat.name}
+                        stackId="a"
+                        fill={categoryColors[cat.name]}
+                      >
+                        <LabelList
+                          dataKey={cat.name}
+                          position="center"
+                          content={CustomBarLabel}
                         />
-                        <span className="text-muted-foreground">{cat.name}</span>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">{formatCurrency(cat.value)}</p>
-                        <p className="text-xs text-muted-foreground">{cat.percentage.toFixed(1)}%</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Nenhuma despesa neste período
-              </p>
-            )}
-          </CardContent>
-        </Card>
+                        {isLast && (
+                          <LabelList
+                            dataKey={cat.name}
+                            position="top"
+                            content={renderTopLabel}
+                          />
+                        )}
+                      </Bar>
+                    );
+                  })}
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-        {/* Gráfico de Pizza - Receitas */}
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-success" />
-              Receitas por Categoria
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {incomesByCategory.length > 0 ? (
+          {/* Gráfico de Pizza - Receitas */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="text-base sm:text-lg">Distribuição Percentual</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {incomesByCategory.length > 0 ? (
               <>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
@@ -325,29 +381,30 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
                       fill="#8884d8"
                       dataKey="value"
                     >
-                      {incomesByCategory.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS.income[index % COLORS.income.length]} />
+                      {incomesByCategory.map((entry) => (
+                        <Cell key={`cell-${entry.name}`} fill={categoryColors[entry.name]} />
                       ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
                     <Legend
                       verticalAlign="bottom"
                       height={36}
-                      formatter={(value, entry: any) => (
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={(value: string, entry: any) => (
                         <span className="text-xs">
-                          {value} ({entry.payload.percentage.toFixed(1)}%)
+                          {value} ({entry?.payload?.percentage?.toFixed(1) || 0}%)
                         </span>
                       )}
                     />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="mt-4 space-y-2">
-                  {incomesByCategory.slice(0, 5).map((cat, index) => (
+                  {incomesByCategory.slice(0, 5).map((cat) => (
                     <div key={cat.name} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
                         <div
                           className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: COLORS.income[index % COLORS.income.length] }}
+                          style={{ backgroundColor: categoryColors[cat.name] }}
                         />
                         <span className="text-muted-foreground">{cat.name}</span>
                       </div>
@@ -364,8 +421,129 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
                 Nenhuma receita neste período
               </p>
             )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Seção de Despesas - Barra + Pizza */}
+      <div>
+        <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+          <TrendingDown className="h-5 w-5 text-destructive" />
+          Despesas
+        </h3>
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
+          {/* Gráfico de Barras - Despesas */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="text-base sm:text-lg">Composição por Categoria</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={[stackedBarData[1]]}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                  <XAxis dataKey="type" />
+                  <YAxis hide />
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  {expensesByCategory.map((cat, index) => {
+                    const isLast = index === expensesByCategory.length - 1;
+                    return (
+                      <Bar
+                        key={cat.name}
+                        dataKey={cat.name}
+                        stackId="a"
+                        fill={categoryColors[cat.name]}
+                      >
+                        <LabelList
+                          dataKey={cat.name}
+                          position="center"
+                          content={CustomBarLabel}
+                        />
+                        {isLast && (
+                          <LabelList
+                            dataKey={cat.name}
+                            position="top"
+                            content={renderTopLabel}
+                          />
+                        )}
+                      </Bar>
+                    );
+                  })}
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Gráfico de Pizza - Despesas */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="text-base sm:text-lg">Distribuição Percentual</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {expensesByCategory.length > 0 ? (
+              <>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={expensesByCategory}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={renderCustomLabel}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {expensesByCategory.map((entry) => (
+                        <Cell key={`cell-${entry.name}`} fill={categoryColors[entry.name]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={(value: string, entry: any) => (
+                        <span className="text-xs">
+                          {value} ({entry?.payload?.percentage?.toFixed(1) || 0}%)
+                        </span>
+                      )}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="mt-4 space-y-2">
+                  {expensesByCategory.slice(0, 5).map((cat) => (
+                    <div key={cat.name} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: categoryColors[cat.name] }}
+                        />
+                        <span className="text-muted-foreground">{cat.name}</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">{formatCurrency(cat.value)}</p>
+                        <p className="text-xs text-muted-foreground">{cat.percentage.toFixed(1)}%</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Nenhuma despesa neste período
+              </p>
+            )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
