@@ -56,6 +56,34 @@ export interface Goal {
   updated_at?: string;
 }
 
+export interface ShoppingItem {
+  id: number;
+  shopping_list_id: number;
+  name: string;
+  category: string;
+  quantity: string;
+  estimated_price: number;
+  actual_price?: number;
+  is_purchased: boolean;
+  notes?: string;
+  order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ShoppingList {
+  id: number;
+  name: string;
+  month?: string;
+  status: "active" | "completed" | "archived";
+  total_estimated: number;
+  total_spent: number;
+  items: ShoppingItem[];
+  created_at?: string;
+  updated_at?: string;
+  completed_at?: string;
+}
+
 export const useAccounts = () => {
   return useQuery<Account[]>({
     queryKey: ["accounts"],
@@ -267,6 +295,136 @@ export const useDeleteGoal = () => {
     mutationFn: (id: number) => api.delete(`/goals/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["goals"] });
+    },
+  });
+};
+
+// ==================== SHOPPING LISTS ====================
+
+export const useShoppingLists = (status?: string, month?: string) => {
+  const params = new URLSearchParams();
+  if (status) params.append("status", status);
+  if (month) params.append("month", month);
+  const queryString = params.toString() ? `?${params.toString()}` : "";
+  
+  return useQuery<ShoppingList[]>({
+    queryKey: ["shopping-lists", status, month],
+    queryFn: () => api.get(`/shopping-lists${queryString}`),
+  });
+};
+
+export const useShoppingList = (id: number) => {
+  return useQuery<ShoppingList>({
+    queryKey: ["shopping-lists", id],
+    queryFn: () => api.get(`/shopping-lists/${id}`),
+    enabled: !!id,
+  });
+};
+
+export const useCreateShoppingList = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: Omit<ShoppingList, "id" | "items" | "created_at" | "updated_at" | "completed_at"> & { items?: Omit<ShoppingItem, "id" | "shopping_list_id" | "created_at" | "updated_at">[] }) =>
+      api.post("/shopping-lists", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shopping-lists"] });
+    },
+  });
+};
+
+export const useUpdateShoppingList = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ 
+      id, 
+      data, 
+      createTransactions, 
+      accountId 
+    }: { 
+      id: number; 
+      data: Partial<Omit<ShoppingList, "id" | "items" | "created_at" | "updated_at" | "completed_at">>; 
+      createTransactions?: boolean;
+      accountId?: number;
+    }) => {
+      // Construir query params
+      const params = new URLSearchParams();
+      if (createTransactions) params.append("create_transactions", "true");
+      if (accountId) params.append("account_id", accountId.toString());
+      
+      const queryString = params.toString() ? `?${params.toString()}` : "";
+      
+      return api.put(`/shopping-lists/${id}${queryString}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shopping-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+    },
+  });
+};
+
+export const useDeleteShoppingList = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: number) => api.delete(`/shopping-lists/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shopping-lists"] });
+    },
+  });
+};
+
+export const useDuplicateShoppingList = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, newName, newMonth }: { id: number; newName: string; newMonth?: string }) =>
+      api.post(`/shopping-lists/${id}/duplicate?new_name=${encodeURIComponent(newName)}${newMonth ? `&new_month=${newMonth}` : ""}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shopping-lists"] });
+    },
+  });
+};
+
+// ==================== SHOPPING ITEMS ====================
+
+export const useCreateShoppingItem = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ listId, data }: { listId: number; data: Omit<ShoppingItem, "id" | "shopping_list_id" | "created_at" | "updated_at"> }) =>
+      api.post(`/shopping-lists/${listId}/items`, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["shopping-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["shopping-lists", variables.listId] });
+    },
+  });
+};
+
+export const useUpdateShoppingItem = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ listId, itemId, data }: { listId: number; itemId: number; data: Partial<Omit<ShoppingItem, "id" | "shopping_list_id" | "created_at" | "updated_at">> }) =>
+      api.put(`/shopping-lists/${listId}/items/${itemId}`, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["shopping-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["shopping-lists", variables.listId] });
+    },
+  });
+};
+
+export const useDeleteShoppingItem = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ listId, itemId }: { listId: number; itemId: number }) =>
+      api.delete(`/shopping-lists/${listId}/items/${itemId}`),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["shopping-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["shopping-lists", variables.listId] });
     },
   });
 };

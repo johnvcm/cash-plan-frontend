@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Home, TrendingUp, Wallet, CreditCard, BarChart3, Target, Menu, X, LogOut } from "lucide-react";
+import { Home, TrendingUp, Wallet, CreditCard, BarChart3, Target, Menu, X, LogOut, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSwipeMenuContext } from "@/contexts/SwipeMenuContext";
@@ -12,6 +12,7 @@ const menuItems = [
   { title: "Cartões", url: "/cartoes", icon: CreditCard },
   { title: "Investimentos", url: "/investimentos", icon: BarChart3 },
   { title: "Metas", url: "/metas", icon: Target },
+  { title: "Lista de Compras", url: "/lista-compras", icon: ShoppingCart },
 ];
 
 export function AppHeader() {

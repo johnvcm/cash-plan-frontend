@@ -1,5 +1,7 @@
-// HARDCODED para debug
-const API_BASE_URL = "http://192.168.1.13:8080";
+// HARDCODED - IP Público para acesso remoto
+const API_BASE_URL = "http://189.12.0.174:8080";
+
+console.log("🌐 API Base URL:", API_BASE_URL);
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");

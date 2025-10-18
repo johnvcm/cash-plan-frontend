@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TransactionItem } from "@/components/TransactionItem";
 import { TransactionCharts } from "@/components/TransactionCharts";
-import { Plus, Filter } from "lucide-react";
+import { Plus, Filter, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -24,10 +24,36 @@ const Lancamentos = () => {
   
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
   const [formOpen, setFormOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<number | null>(null);
+
+  // Extrair meses únicos das transações
+  const availableMonths = useMemo(() => {
+    if (!transactions) return [];
+    
+    const monthsSet = new Set<string>();
+    transactions.forEach((t) => {
+      const date = new Date(t.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      monthsSet.add(monthKey);
+    });
+    
+    return Array.from(monthsSet).sort().reverse(); // Mais recente primeiro
+  }, [transactions]);
+
+  // Formatar mês para exibição
+  const formatMonth = (monthKey: string) => {
+    const [year, month] = monthKey.split("-");
+    const date = new Date(Date.UTC(Number(year), Number(month) - 1, 1));
+    return new Intl.DateTimeFormat("pt-BR", { 
+      month: "long", 
+      year: "numeric",
+      timeZone: "UTC"
+    }).format(date);
+  };
 
   const handleEdit = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -55,14 +81,24 @@ const Lancamentos = () => {
   const filteredTransactions = transactions?.filter((t) => {
     const matchesFilter = filter === "all" || t.type === filter;
     const matchesSearch = t.description.toLowerCase().includes(search.toLowerCase());
-    return matchesFilter && matchesSearch;
+    
+    // Filtro de mês
+    let matchesMonth = true;
+    if (selectedMonth !== "all") {
+      const date = new Date(t.date);
+      const transactionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      matchesMonth = transactionMonth === selectedMonth;
+    }
+    
+    return matchesFilter && matchesSearch && matchesMonth;
   });
 
-  const totalIncome = transactions
+  // Calcular totais baseados nas transações filtradas
+  const totalIncome = filteredTransactions
     ?.filter((t) => t.type === "income")
     .reduce((sum, t) => sum + t.amount, 0) || 0;
 
-  const totalExpenses = transactions
+  const totalExpenses = filteredTransactions
     ?.filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
 
@@ -92,6 +128,39 @@ const Lancamentos = () => {
         </Button>
       </div>
 
+      {/* Filtro de Mês */}
+      <Card className="shadow-card bg-gradient-card">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Calendar className="h-5 w-5 text-primary" />
+              <span className="text-sm font-medium text-foreground">Período:</span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 hide-scrollbar w-full">
+              <Button
+                variant={selectedMonth === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedMonth("all")}
+                className="whitespace-nowrap flex-shrink-0"
+              >
+                Todos os meses
+              </Button>
+              {availableMonths.map((month) => (
+                <Button
+                  key={month}
+                  variant={selectedMonth === month ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedMonth(month)}
+                  className="whitespace-nowrap flex-shrink-0 capitalize"
+                >
+                  {formatMonth(month)}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
         <Card className="shadow-card">
           <CardContent className="p-6">
@@ -120,8 +189,8 @@ const Lancamentos = () => {
       </div>
 
       {/* Gráficos de Análise */}
-      {transactions && transactions.length > 0 && (
-        <TransactionCharts transactions={transactions} />
+      {filteredTransactions && filteredTransactions.length > 0 && (
+        <TransactionCharts transactions={filteredTransactions} />
       )}
 
       <Card className="shadow-card">

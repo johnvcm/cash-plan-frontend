@@ -230,30 +230,6 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
     );
   };
 
-  // Label para mostrar total no topo da barra
-  const renderTopLabel = (props: TopLabelProps) => {
-    const { x, y, width, index } = props;
-    
-    if (x === undefined || y === undefined || !width || index === undefined) return null;
-    
-    const total = stackedBarData[index]?.total || 0;
-    
-    if (total === 0) return null;
-
-    return (
-      <text
-        x={x + width / 2}
-        y={y - 10}
-        fill="hsl(var(--foreground))"
-        textAnchor="middle"
-        dominantBaseline="middle"
-        className="text-sm font-bold"
-      >
-        {formatCurrency(total)}
-      </text>
-    );
-  };
-
   const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percentage }: PieLabelProps) => {
     if (percentage < 5) return null; // Não mostrar label para fatias muito pequenas
     
@@ -350,7 +326,24 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
                           <LabelList
                             dataKey={cat.name}
                             position="top"
-                            content={renderTopLabel}
+                            content={(props: TopLabelProps) => {
+                              const { x, y, width } = props;
+                              if (x === undefined || y === undefined || !width) return null;
+                              const total = stackedBarData[0].total;
+                              if (total === 0) return null;
+                              return (
+                                <text
+                                  x={x + width / 2}
+                                  y={y - 10}
+                                  fill="hsl(var(--foreground))"
+                                  textAnchor="middle"
+                                  dominantBaseline="middle"
+                                  className="text-sm font-bold"
+                                >
+                                  {formatCurrency(total)}
+                                </text>
+                              );
+                            }}
                           />
                         )}
                       </Bar>
@@ -470,7 +463,24 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
                           <LabelList
                             dataKey={cat.name}
                             position="top"
-                            content={renderTopLabel}
+                            content={(props: TopLabelProps) => {
+                              const { x, y, width } = props;
+                              if (x === undefined || y === undefined || !width) return null;
+                              const total = stackedBarData[1].total;
+                              if (total === 0) return null;
+                              return (
+                                <text
+                                  x={x + width / 2}
+                                  y={y - 10}
+                                  fill="hsl(var(--foreground))"
+                                  textAnchor="middle"
+                                  dominantBaseline="middle"
+                                  className="text-sm font-bold"
+                                >
+                                  {formatCurrency(total)}
+                                </text>
+                              );
+                            }}
                           />
                         )}
                       </Bar>

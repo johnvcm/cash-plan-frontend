@@ -14,6 +14,7 @@ import Contas from "./pages/Contas";
 import Cartoes from "./pages/Cartoes";
 import Investimentos from "./pages/Investimentos";
 import Metas from "./pages/Metas";
+import ListaCompras from "./pages/ListaCompras";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ function ProtectedLayout() {
             <Route path="/cartoes" element={<Cartoes />} />
             <Route path="/investimentos" element={<Investimentos />} />
             <Route path="/metas" element={<Metas />} />
+            <Route path="/lista-compras" element={<ListaCompras />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
