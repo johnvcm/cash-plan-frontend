@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppHeader } from "@/components/AppHeader";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { SwipeMenuProvider, useSwipeMenuContext } from "@/contexts/SwipeMenuContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useCapacitorPlugins } from "@/hooks/use-capacitor-plugins";
 import Dashboard from "./pages/Dashboard";
 import Lancamentos from "./pages/Lancamentos";
 import Contas from "./pages/Contas";
@@ -20,6 +22,10 @@ const queryClient = new QueryClient();
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
+  const { swipeHandlers } = useSwipeMenuContext();
+  
+  // Inicializar plugins do Capacitor (StatusBar, Keyboard, etc)
+  useCapacitorPlugins();
 
   return (
     <Routes>
@@ -40,7 +46,8 @@ function AppContent() {
           <ProtectedRoute>
             <div className="min-h-screen w-full flex flex-col">
               <AppHeader />
-              <main className="flex-1 w-full">
+              {/* Aplicar swipe handlers no conteúdo principal - NÃO bloqueia cliques */}
+              <main className="flex-1 w-full" {...swipeHandlers}>
                 <div className="container mx-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
@@ -73,7 +80,9 @@ const App = () => (
         }}
       >
         <AuthProvider>
-          <AppContent />
+          <SwipeMenuProvider>
+            <AppContent />
+          </SwipeMenuProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
