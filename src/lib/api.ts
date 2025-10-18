@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
+// HARDCODED para debug
+const API_BASE_URL = "http://192.168.1.13:8080";
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");

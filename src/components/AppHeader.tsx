@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { Home, TrendingUp, Wallet, CreditCard, BarChart3, Target, Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { useSwipeable } from "react-swipeable";
 
 const menuItems = [
   { title: "Home", url: "/", icon: Home },
@@ -17,15 +18,66 @@ const menuItems = [
 export function AppHeader() {
   const { logout, user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showSwipeArea, setShowSwipeArea] = useState(false);
 
   const handleLogout = () => {
     logout();
     window.location.href = "/login";
   };
 
+  // Detecta quando o toque começa perto da borda esquerda
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches[0].clientX < 50 && window.innerWidth < 1024) {
+        setShowSwipeArea(true);
+      }
+    };
+
+    const handleTouchEnd = () => {
+      setShowSwipeArea(false);
+    };
+
+    window.addEventListener("touchstart", handleTouchStart);
+    window.addEventListener("touchend", handleTouchEnd);
+
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, []);
+
+  // Handler de swipe
+  const swipeHandlers = useSwipeable({
+    onSwipedRight: (eventData) => {
+      // Só abre se o swipe começou perto da borda esquerda
+      if (eventData.initial[0] < 50 && window.innerWidth < 1024) {
+        setMobileMenuOpen(true);
+      }
+    },
+    onSwipedLeft: () => {
+      // Fecha o menu se já estiver aberto
+      if (mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    },
+    trackMouse: false, // Desativa tracking do mouse, só touch
+    trackTouch: true,
+    delta: 50, // Distância mínima para considerar um swipe
+    preventScrollOnSwipe: false,
+    touchEventOptions: { passive: true },
+  });
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4 md:px-6">
+    <>
+      {/* Área de detecção de swipe - invisível, apenas para capturar gestos */}
+      <div
+        {...swipeHandlers}
+        className="fixed inset-0 z-0 lg:hidden pointer-events-none"
+        style={{ touchAction: "pan-y" }}
+      />
+      
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         {/* Menu Mobile - Hamburguer */}
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild className="lg:hidden">
@@ -34,6 +86,10 @@ export function AppHeader() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-[280px] sm:w-[320px]">
+            <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
+            <SheetDescription className="sr-only">
+              Menu principal para navegar entre as páginas do aplicativo
+            </SheetDescription>
             <div className="flex flex-col h-full">
               {/* Header do Menu Mobile */}
               <div className="flex items-center gap-2 pb-4 mb-4 border-b">
@@ -142,6 +198,7 @@ export function AppHeader() {
         </div>
       </div>
     </header>
+    </>
   );
 }
 
