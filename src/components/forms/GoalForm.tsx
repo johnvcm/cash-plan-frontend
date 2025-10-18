@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,13 +13,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ColorPicker } from "@/components/ui/color-picker";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { useCreateGoal, useUpdateGoal, Goal } from "@/hooks/use-api";
 import { toast } from "sonner";
 
 const goalSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
-  target: z.number().min(0, "Meta deve ser positiva"),
-  current: z.number().min(0, "Valor atual deve ser positivo"),
+  target: z.number().positive("Meta deve ser maior que zero"),
   color: z.string().default("#10B981"),
 });
 
@@ -36,17 +37,20 @@ export function GoalForm({ open, onOpenChange, goal }: GoalFormProps) {
   const createGoal = useCreateGoal();
   const updateGoal = useUpdateGoal();
 
+  const [selectedColor, setSelectedColor] = useState(goal?.color || "#10B981");
+  const [target, setTarget] = useState(goal?.target || 0);
+
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<GoalFormData>({
     resolver: zodResolver(goalSchema),
     defaultValues: {
       name: goal?.name || "",
       target: goal?.target || 0,
-      current: goal?.current || 0,
       color: goal?.color || "#10B981",
     },
   });
@@ -56,29 +60,45 @@ export function GoalForm({ open, onOpenChange, goal }: GoalFormProps) {
       reset({
         name: goal.name,
         target: goal.target,
-        current: goal.current,
         color: goal.color || "#10B981",
       });
+      setSelectedColor(goal.color || "#10B981");
+      setTarget(goal.target || 0);
     } else {
       reset({
         name: "",
         target: 0,
-        current: 0,
         color: "#10B981",
       });
+      setSelectedColor("#10B981");
+      setTarget(0);
     }
   }, [goal, reset]);
+
+  useEffect(() => {
+    setValue("color", selectedColor);
+  }, [selectedColor, setValue]);
+
+  useEffect(() => {
+    setValue("target", target);
+  }, [target, setValue]);
 
   const onSubmit = async (data: GoalFormData) => {
     try {
       if (isEditing) {
-        await updateGoal.mutateAsync({ id: goal.id, data });
+        await updateGoal.mutateAsync({ 
+          id: goal.id, 
+          data: {
+            ...data,
+            current: goal.current, // Manter valor atual existente
+          }
+        });
         toast.success("Meta atualizada com sucesso!");
       } else {
         await createGoal.mutateAsync({
           name: data.name,
           target: data.target,
-          current: data.current,
+          current: 0, // Iniciar com 0, será calculado automaticamente na página
           color: data.color || "#10B981",
         });
         toast.success("Meta criada com sucesso!");
@@ -99,56 +119,52 @@ export function GoalForm({ open, onOpenChange, goal }: GoalFormProps) {
             {isEditing ? "Edite os detalhes da sua meta." : "Preencha os dados para criar uma nova meta."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="name">Nome da Meta</Label>
+            <Label htmlFor="name" className="text-sm font-medium">
+              Nome da Meta
+            </Label>
             <Input
               id="name"
-              placeholder="Ex: Fundo de Emergência"
+              placeholder="Ex: Fundo de Emergência, Viagem..."
+              className="h-11"
+              autoComplete="off"
               {...register("name")}
             />
             {errors.name && (
-              <p className="text-sm text-destructive">{errors.name.message}</p>
+              <p className="text-sm text-destructive flex items-center gap-1">
+                {errors.name.message}
+              </p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="target">Valor Alvo</Label>
-            <Input
+            <Label htmlFor="target" className="text-sm font-medium">
+              Valor Alvo
+            </Label>
+            <CurrencyInput
               id="target"
-              type="number"
-              step="0.01"
-              placeholder="0.00"
-              {...register("target", { valueAsNumber: true })}
+              value={target}
+              onChange={setTarget}
+              placeholder="0,00"
             />
             {errors.target && (
-              <p className="text-sm text-destructive">{errors.target.message}</p>
+              <p className="text-sm text-destructive flex items-center gap-1">
+                {errors.target.message}
+              </p>
             )}
+            <p className="text-xs text-muted-foreground">
+              O progresso será calculado automaticamente baseado no saldo total das suas contas
+            </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="current">Valor Atual</Label>
-            <Input
-              id="current"
-              type="number"
-              step="0.01"
-              placeholder="0.00"
-              {...register("current", { valueAsNumber: true })}
-            />
-            {errors.current && (
-              <p className="text-sm text-destructive">{errors.current.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="color">Cor</Label>
-            <Input
-              id="color"
-              type="color"
-              {...register("color")}
-            />
+            <Label className="text-sm font-medium">Cor da Meta</Label>
+            <ColorPicker value={selectedColor} onChange={setSelectedColor} />
             {errors.color && (
-              <p className="text-sm text-destructive">{errors.color.message}</p>
+              <p className="text-sm text-destructive flex items-center gap-1">
+                {errors.color.message}
+              </p>
             )}
           </div>
 

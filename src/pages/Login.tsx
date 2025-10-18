@@ -45,13 +45,16 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent className="px-4 sm:px-6">
-          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="username">Usuário</Label>
+              <Label htmlFor="username" className="text-sm font-medium">
+                Usuário
+              </Label>
               <Input
                 id="username"
                 type="text"
                 placeholder="seu_usuario"
+                className="h-11"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -60,11 +63,14 @@ export default function Login() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password" className="text-sm font-medium">
+                Senha
+              </Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="••••••••"
+                className="h-11"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -74,7 +80,7 @@ export default function Login() {
 
             <Button
               type="submit"
-              className="w-full bg-gradient-primary hover:bg-primary-hover"
+              className="w-full h-11 bg-gradient-primary hover:bg-primary-hover"
               disabled={isLoading}
             >
               {isLoading ? "Entrando..." : "Entrar"}

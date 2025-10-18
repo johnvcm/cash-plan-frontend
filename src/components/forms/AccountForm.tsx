@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -13,6 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ColorPicker } from "@/components/ui/color-picker";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { useCreateAccount, useUpdateAccount, Account } from "@/hooks/use-api";
 import { toast } from "sonner";
 
@@ -37,10 +39,15 @@ export function AccountForm({ open, onOpenChange, account }: AccountFormProps) {
   const createAccount = useCreateAccount();
   const updateAccount = useUpdateAccount();
 
+  const [selectedColor, setSelectedColor] = useState(account?.color || "#10B981");
+  const [balance, setBalance] = useState(account?.balance || 0);
+  const [investments, setInvestments] = useState(account?.investments || 0);
+
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<AccountFormData>({
     resolver: zodResolver(accountSchema),
@@ -62,6 +69,9 @@ export function AccountForm({ open, onOpenChange, account }: AccountFormProps) {
         investments: account.investments,
         color: account.color || "#10B981",
       });
+      setSelectedColor(account.color || "#10B981");
+      setBalance(account.balance || 0);
+      setInvestments(account.investments || 0);
     } else {
       reset({
         name: "",
@@ -70,8 +80,23 @@ export function AccountForm({ open, onOpenChange, account }: AccountFormProps) {
         investments: 0,
         color: "#10B981",
       });
+      setSelectedColor("#10B981");
+      setBalance(0);
+      setInvestments(0);
     }
   }, [account, reset]);
+
+  useEffect(() => {
+    setValue("color", selectedColor);
+  }, [selectedColor, setValue]);
+
+  useEffect(() => {
+    setValue("balance", balance);
+  }, [balance, setValue]);
+
+  useEffect(() => {
+    setValue("investments", investments);
+  }, [investments, setValue]);
 
   const onSubmit = async (data: AccountFormData) => {
     try {
@@ -98,68 +123,87 @@ export function AccountForm({ open, onOpenChange, account }: AccountFormProps) {
             {isEditing ? "Edite os detalhes da sua conta." : "Preencha os dados para criar uma nova conta."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="name">Nome da Conta</Label>
+            <Label htmlFor="name" className="text-sm font-medium">
+              Nome da Conta
+            </Label>
             <Input
               id="name"
-              placeholder="Ex: Conta Corrente"
+              placeholder="Ex: Conta Corrente, Poupança..."
+              className="h-11"
+              autoComplete="off"
               {...register("name")}
             />
             {errors.name && (
-              <p className="text-sm text-destructive">{errors.name.message}</p>
+              <p className="text-sm text-destructive flex items-center gap-1">
+                {errors.name.message}
+              </p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="bank">Banco</Label>
+            <Label htmlFor="bank" className="text-sm font-medium">
+              Banco
+            </Label>
             <Input
               id="bank"
-              placeholder="Ex: Banco do Brasil"
+              placeholder="Ex: Nubank, Inter, Itaú..."
+              className="h-11"
+              autoComplete="off"
               {...register("bank")}
             />
             {errors.bank && (
-              <p className="text-sm text-destructive">{errors.bank.message}</p>
+              <p className="text-sm text-destructive flex items-center gap-1">
+                {errors.bank.message}
+              </p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="balance">Saldo</Label>
-            <Input
+            <Label htmlFor="balance" className="text-sm font-medium">
+              Saldo Disponível
+            </Label>
+            <CurrencyInput
               id="balance"
-              type="number"
-              step="0.01"
-              placeholder="0.00"
-              {...register("balance", { valueAsNumber: true })}
+              value={balance}
+              onChange={setBalance}
+              placeholder="0,00"
             />
             {errors.balance && (
-              <p className="text-sm text-destructive">{errors.balance.message}</p>
+              <p className="text-sm text-destructive flex items-center gap-1">
+                {errors.balance.message}
+              </p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="investments">Investimentos</Label>
-            <Input
+            <Label htmlFor="investments" className="text-sm font-medium">
+              Investimentos
+            </Label>
+            <CurrencyInput
               id="investments"
-              type="number"
-              step="0.01"
-              placeholder="0.00"
-              {...register("investments", { valueAsNumber: true })}
+              value={investments}
+              onChange={setInvestments}
+              placeholder="0,00"
             />
             {errors.investments && (
-              <p className="text-sm text-destructive">{errors.investments.message}</p>
+              <p className="text-sm text-destructive flex items-center gap-1">
+                {errors.investments.message}
+              </p>
             )}
+            <p className="text-xs text-muted-foreground">
+              Valor total investido nesta conta
+            </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="color">Cor</Label>
-            <Input
-              id="color"
-              type="color"
-              {...register("color")}
-            />
+            <Label className="text-sm font-medium">Cor da Conta</Label>
+            <ColorPicker value={selectedColor} onChange={setSelectedColor} />
             {errors.color && (
-              <p className="text-sm text-destructive">{errors.color.message}</p>
+              <p className="text-sm text-destructive flex items-center gap-1">
+                {errors.color.message}
+              </p>
             )}
           </div>
 

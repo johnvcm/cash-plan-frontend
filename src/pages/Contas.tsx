@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { useAccounts, useDeleteAccount, Account } from "@/hooks/use-api";
 import { AccountForm } from "@/components/forms/AccountForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
 
 const Contas = () => {
@@ -61,10 +62,6 @@ const Contas = () => {
   const totalBalance = accounts?.reduce((sum, acc) => sum + acc.balance, 0) || 0;
   const totalInvestments = accounts?.reduce((sum, acc) => sum + acc.investments, 0) || 0;
 
-  const formatBalance = (balance: number) => `R$ ${balance.toFixed(2).replace(".", ",")}`;
-  const formatInvestments = (investments: number) =>
-    `R$ ${investments.toFixed(2).replace(".", ",")}`;
-
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -86,7 +83,7 @@ const Contas = () => {
           <CardContent className="p-6">
             <p className="text-sm font-medium text-muted-foreground">Total em contas correntes</p>
             <p className="text-3xl font-bold text-foreground mt-2">
-              {formatBalance(totalBalance)}
+              {formatCurrency(totalBalance)}
             </p>
           </CardContent>
         </Card>
@@ -94,7 +91,7 @@ const Contas = () => {
           <CardContent className="p-6">
             <p className="text-sm font-medium text-muted-foreground">Total em investimentos</p>
             <p className="text-3xl font-bold text-success mt-2">
-              {formatBalance(totalInvestments)}
+              {formatCurrency(totalInvestments)}
             </p>
           </CardContent>
         </Card>
@@ -111,8 +108,8 @@ const Contas = () => {
                 key={account.id}
                 name={account.name}
                 bank={account.bank}
-                balance={formatBalance(account.balance)}
-                investments={formatInvestments(account.investments)}
+                balance={formatCurrency(account.balance)}
+                investments={formatCurrency(account.investments)}
                 color={account.color || "#000000"}
                 onEdit={() => handleEdit(account)}
                 onDelete={() => {

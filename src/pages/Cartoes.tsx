@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { useCreditCards, useDeleteCreditCard, CreditCard } from "@/hooks/use-api";
 import { CreditCardForm } from "@/components/forms/CreditCardForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
 
 const Cartoes = () => {
@@ -43,13 +44,6 @@ const Cartoes = () => {
   const totalUsed = cards?.reduce((sum, card) => sum + card.used, 0) || 0;
   const totalLimit = cards?.reduce((sum, card) => sum + card.limit, 0) || 0;
   const availableLimit = totalLimit - totalUsed;
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
 
   if (isLoading) {
     return (
@@ -111,7 +105,11 @@ const Cartoes = () => {
             cards.map((card) => (
               <CreditCardCard
                 key={card.id}
-                {...card}
+                name={card.name}
+                bank={card.bank}
+                used={card.used / 100}
+                limit={card.limit / 100}
+                color={card.color || "#3B82F6"}
                 onEdit={() => handleEdit(card)}
                 onDelete={() => {
                   setCardToDelete(card.id);

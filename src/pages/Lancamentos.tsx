@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TransactionItem } from "@/components/TransactionItem";
+import { TransactionCharts } from "@/components/TransactionCharts";
 import { Plus, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,6 +15,7 @@ import {
 import { useTransactions, useDeleteTransaction, Transaction } from "@/hooks/use-api";
 import { TransactionForm } from "@/components/forms/TransactionForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
 
 const Lancamentos = () => {
@@ -95,7 +97,7 @@ const Lancamentos = () => {
           <CardContent className="p-6">
             <p className="text-sm font-medium text-muted-foreground">Receitas</p>
             <p className="text-2xl font-bold text-success mt-2">
-              R$ {totalIncome.toFixed(2)}
+              {formatCurrency(totalIncome)}
             </p>
           </CardContent>
         </Card>
@@ -103,7 +105,7 @@ const Lancamentos = () => {
           <CardContent className="p-6">
             <p className="text-sm font-medium text-muted-foreground">Despesas</p>
             <p className="text-2xl font-bold text-destructive mt-2">
-              R$ {totalExpenses.toFixed(2)}
+              {formatCurrency(totalExpenses)}
             </p>
           </CardContent>
         </Card>
@@ -111,11 +113,16 @@ const Lancamentos = () => {
           <CardContent className="p-6">
             <p className="text-sm font-medium text-muted-foreground">Saldo</p>
             <p className={`text-2xl font-bold mt-2 ${balance >= 0 ? "text-success" : "text-destructive"}`}>
-              R$ {balance.toFixed(2)}
+              {formatCurrency(balance)}
             </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Gráficos de Análise */}
+      {transactions && transactions.length > 0 && (
+        <TransactionCharts transactions={transactions} />
+      )}
 
       <Card className="shadow-card">
         <CardHeader>

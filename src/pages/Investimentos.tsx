@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, TrendingUp, Edit, Trash2 } from "lucide-react";
+import { Plus, TrendingUp, Edit, Trash2, PiggyBank } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { useInvestments, useDeleteInvestment, Investment } from "@/hooks/use-api";
 import { InvestmentForm } from "@/components/forms/InvestmentForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { formatCurrency, formatNumber } from "@/lib/format";
 import { toast } from "sonner";
 
 const Investimentos = () => {
@@ -45,12 +46,11 @@ const Investimentos = () => {
     ? investments.reduce((sum, inv) => sum + inv.return_rate, 0) / investments.length
     : 0;
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
+  // Calcular distribuição por tipo
+  const rendaFixaTotal = investments?.filter(inv => inv.type === "Renda Fixa").reduce((sum, inv) => sum + inv.value, 0) || 0;
+  const rendaVariavelTotal = investments?.filter(inv => inv.type === "Renda Variável").reduce((sum, inv) => sum + inv.value, 0) || 0;
+  const rendaFixaPercent = totalInvested > 0 ? (rendaFixaTotal / totalInvested) * 100 : 0;
+  const rendaVariavelPercent = totalInvested > 0 ? (rendaVariavelTotal / totalInvested) * 100 : 0;
 
   if (isLoading) {
     return (
@@ -80,23 +80,37 @@ const Investimentos = () => {
         <StatCard
           title="Total Investido"
           value={formatCurrency(totalInvested)}
-          icon={TrendingUp}
-          variant="success"
+          icon={PiggyBank}
+          variant="warning"
         />
         <Card className="shadow-card">
           <CardContent className="p-6">
-            <p className="text-sm font-medium text-muted-foreground">Rentabilidade Média</p>
-            <p className={`text-2xl font-bold mt-2 ${averageReturn >= 0 ? "text-success" : "text-destructive"}`}>
-              {averageReturn >= 0 ? "+" : ""}{averageReturn.toFixed(2)}%
-            </p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-1 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Rentabilidade Média</p>
+                <p className={`text-xl sm:text-2xl font-bold ${averageReturn >= 0 ? "text-success" : "text-destructive"}`}>
+                  {averageReturn >= 0 ? "+" : ""}{formatNumber(averageReturn, 2)}%
+                </p>
+              </div>
+              <div className="rounded-full p-2 sm:p-3 flex-shrink-0 bg-background/50">
+                <TrendingUp className={`h-5 w-5 sm:h-6 sm:w-6 ${averageReturn >= 0 ? "text-success" : "text-destructive"}`} />
+              </div>
+            </div>
           </CardContent>
         </Card>
         <Card className="shadow-card">
           <CardContent className="p-6">
-            <p className="text-sm font-medium text-muted-foreground">Projeção 12 meses</p>
-            <p className="text-2xl font-bold text-success mt-2">
-              {formatCurrency(totalInvested * 1.12)}
-            </p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-1 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Projeção 12 meses</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">
+                  {formatCurrency(totalInvested * (1 + averageReturn / 100))}
+                </p>
+              </div>
+              <div className="rounded-full p-2 sm:p-3 flex-shrink-0 bg-primary/10">
+                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -107,26 +121,47 @@ const Investimentos = () => {
             <CardTitle>Distribuição por Tipo</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm font-medium">Renda Fixa</span>
-                  <span className="text-sm font-medium">66.7%</span>
-                </div>
-                <div className="h-3 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-success" style={{ width: "66.7%" }}></div>
-                </div>
+            {investments && investments.length > 0 ? (
+              <div className="space-y-4">
+                {rendaFixaTotal > 0 && (
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm font-medium">Renda Fixa</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">{formatCurrency(rendaFixaTotal)}</span>
+                        <span className="text-sm font-medium">{formatNumber(rendaFixaPercent, 1)}%</span>
+                      </div>
+                    </div>
+                    <div className="h-3 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-green-500 to-green-600" style={{ width: `${rendaFixaPercent}%` }}></div>
+                    </div>
+                  </div>
+                )}
+                {rendaVariavelTotal > 0 && (
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm font-medium">Renda Variável</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">{formatCurrency(rendaVariavelTotal)}</span>
+                        <span className="text-sm font-medium">{formatNumber(rendaVariavelPercent, 1)}%</span>
+                      </div>
+                    </div>
+                    <div className="h-3 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-primary" style={{ width: `${rendaVariavelPercent}%` }}></div>
+                    </div>
+                  </div>
+                )}
+                {investments.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhum investimento cadastrado
+                  </p>
+                )}
               </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm font-medium">Renda Variável</span>
-                  <span className="text-sm font-medium">33.3%</span>
-                </div>
-                <div className="h-3 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-primary" style={{ width: "33.3%" }}></div>
-                </div>
-              </div>
-            </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhum investimento cadastrado
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -135,17 +170,32 @@ const Investimentos = () => {
             <CardTitle>Projeção de Crescimento</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {[6, 12, 24, 36].map((months) => {
-                const projection = totalInvested * Math.pow(1 + averageReturn / 100 / 12, months);
-                return (
-                  <div key={months} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                    <span className="text-sm font-medium">{months} meses</span>
-                    <span className="font-semibold text-success">{formatCurrency(projection)}</span>
-                  </div>
-                );
-              })}
-            </div>
+            {totalInvested > 0 ? (
+              <div className="space-y-3">
+                {[6, 12, 24, 36].map((months) => {
+                  const monthlyRate = averageReturn / 100 / 12;
+                  const projection = totalInvested * Math.pow(1 + monthlyRate, months);
+                  const gain = projection - totalInvested;
+                  return (
+                    <div key={months} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{months} meses</span>
+                        <span className="text-xs text-muted-foreground">
+                          +{formatCurrency(gain)}
+                        </span>
+                      </div>
+                      <span className={`font-semibold ${gain >= 0 ? "text-success" : "text-destructive"}`}>
+                        {formatCurrency(projection)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Adicione investimentos para ver as projeções
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -182,7 +232,7 @@ const Investimentos = () => {
                       }`}
                     >
                       {investment.return_rate >= 0 ? "+" : ""}
-                      {investment.return_rate.toFixed(2)}%
+                      {formatNumber(investment.return_rate, 2)}% a.a.
                     </p>
                   </div>
                   <div className="flex gap-1 sm:gap-2">

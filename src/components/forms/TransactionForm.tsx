@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -20,14 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { useCreateTransaction, useUpdateTransaction, Transaction, useAccounts } from "@/hooks/use-api";
 import { toast } from "sonner";
+import { TrendingUp, TrendingDown } from "lucide-react";
 
 const transactionSchema = z.object({
   description: z.string().min(1, "Descrição é obrigatória"),
   category: z.string().min(1, "Categoria é obrigatória"),
   date: z.string().min(1, "Data é obrigatória"),
-  amount: z.number().refine((val) => val !== 0, "Valor não pode ser zero"),
+  amount: z.number().positive("Valor deve ser maior que zero"),
   type: z.enum(["income", "expense"], { required_error: "Tipo é obrigatório" }),
   account_id: z.number().optional(),
 });
@@ -46,6 +48,8 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
   const updateTransaction = useUpdateTransaction();
   const { data: accounts } = useAccounts();
 
+  const [amount, setAmount] = useState(transaction?.amount || 0);
+
   const {
     register,
     handleSubmit,
@@ -60,7 +64,7 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
       category: transaction?.category || "",
       date: transaction?.date || new Date().toISOString().split("T")[0],
       amount: transaction?.amount || 0,
-      type: transaction?.type || "income",
+      type: transaction?.type || "expense",
       account_id: transaction?.account_id,
     },
   });
@@ -77,17 +81,23 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
         type: transaction.type,
         account_id: transaction.account_id,
       });
+      setAmount(transaction.amount || 0);
     } else {
       reset({
         description: "",
         category: "",
         date: new Date().toISOString().split("T")[0],
         amount: 0,
-        type: "income",
+        type: "expense",
         account_id: undefined,
       });
+      setAmount(0);
     }
   }, [transaction, reset]);
+
+  useEffect(() => {
+    setValue("amount", amount);
+  }, [amount, setValue]);
 
   const onSubmit = async (data: TransactionFormData) => {
     try {
@@ -121,96 +131,130 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
             {isEditing ? "Edite os detalhes do seu lançamento." : "Preencha os dados para criar um novo lançamento."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="description">Descrição</Label>
+            <Label htmlFor="type" className="text-sm font-medium">
+              Tipo de Lançamento
+            </Label>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                type="button"
+                variant={type === "income" ? "default" : "outline"}
+                className="h-14 flex flex-col items-center justify-center gap-1"
+                onClick={() => setValue("type", "income")}
+              >
+                <TrendingUp className="h-5 w-5" />
+                <span className="text-xs">Receita</span>
+              </Button>
+              <Button
+                type="button"
+                variant={type === "expense" ? "default" : "outline"}
+                className="h-14 flex flex-col items-center justify-center gap-1"
+                onClick={() => setValue("type", "expense")}
+              >
+                <TrendingDown className="h-5 w-5" />
+                <span className="text-xs">Despesa</span>
+              </Button>
+            </div>
+            {errors.type && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                {errors.type.message}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="amount" className="text-sm font-medium">
+              Valor
+            </Label>
+            <CurrencyInput
+              id="amount"
+              value={amount}
+              onChange={setAmount}
+              placeholder="0,00"
+            />
+            {errors.amount && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                {errors.amount.message}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description" className="text-sm font-medium">
+              Descrição
+            </Label>
             <Input
               id="description"
-              placeholder="Ex: Salário, Mercado..."
+              placeholder={type === "income" ? "Ex: Salário, Freelance..." : "Ex: Mercado, Aluguel..."}
+              className="h-11"
+              autoComplete="off"
               {...register("description")}
             />
             {errors.description && (
-              <p className="text-sm text-destructive">{errors.description.message}</p>
+              <p className="text-sm text-destructive flex items-center gap-1">
+                {errors.description.message}
+              </p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="type">Tipo</Label>
-            <Select
-              value={type}
-              onValueChange={(value) => setValue("type", value as "income" | "expense")}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="income">Receita</SelectItem>
-                <SelectItem value="expense">Despesa</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.type && (
-              <p className="text-sm text-destructive">{errors.type.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="category">Categoria</Label>
+            <Label htmlFor="category" className="text-sm font-medium">
+              Categoria
+            </Label>
             <Input
               id="category"
-              placeholder="Ex: Renda, Alimentação, Moradia..."
+              placeholder={type === "income" ? "Ex: Renda, Investimentos..." : "Ex: Alimentação, Moradia, Transporte..."}
+              className="h-11"
+              autoComplete="off"
               {...register("category")}
             />
             {errors.category && (
-              <p className="text-sm text-destructive">{errors.category.message}</p>
+              <p className="text-sm text-destructive flex items-center gap-1">
+                {errors.category.message}
+              </p>
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="date">Data</Label>
+              <Label htmlFor="date" className="text-sm font-medium">
+                Data
+              </Label>
               <Input
                 id="date"
                 type="date"
+                className="h-11"
                 {...register("date")}
               />
               {errors.date && (
-                <p className="text-sm text-destructive">{errors.date.message}</p>
+                <p className="text-sm text-destructive flex items-center gap-1">
+                  {errors.date.message}
+                </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="amount">Valor</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                {...register("amount", { valueAsNumber: true })}
-              />
-              {errors.amount && (
-                <p className="text-sm text-destructive">{errors.amount.message}</p>
-              )}
+              <Label htmlFor="account_id" className="text-sm font-medium">
+                Conta (opcional)
+              </Label>
+              <Select
+                value={watch("account_id")?.toString() || "none"}
+                onValueChange={(value) => setValue("account_id", value === "none" ? undefined : parseInt(value))}
+              >
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Nenhuma conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  {accounts?.map((account) => (
+                    <SelectItem key={account.id} value={account.id.toString()}>
+                      {account.name} - {account.bank}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="account_id">Conta (opcional)</Label>
-            <Select
-              value={watch("account_id")?.toString() || "none"}
-              onValueChange={(value) => setValue("account_id", value === "none" ? undefined : parseInt(value))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Nenhuma conta selecionada" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhuma</SelectItem>
-                {accounts?.map((account) => (
-                  <SelectItem key={account.id} value={account.id.toString()}>
-                    {account.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -235,4 +279,5 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
     </Dialog>
   );
 }
+
 

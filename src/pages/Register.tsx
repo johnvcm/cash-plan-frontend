@@ -68,13 +68,16 @@ export default function Register() {
           </CardDescription>
         </CardHeader>
         <CardContent className="px-4 sm:px-6">
-          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="full_name">Nome Completo (opcional)</Label>
+              <Label htmlFor="full_name" className="text-sm font-medium">
+                Nome Completo <span className="text-muted-foreground">(opcional)</span>
+              </Label>
               <Input
                 id="full_name"
                 type="text"
                 placeholder="João Silva"
+                className="h-11"
                 value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 autoComplete="name"
@@ -82,11 +85,15 @@ export default function Register() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
+                inputMode="email"
                 placeholder="seu@email.com"
+                className="h-11"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
@@ -95,11 +102,14 @@ export default function Register() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="username">Usuário</Label>
+              <Label htmlFor="username" className="text-sm font-medium">
+                Usuário
+              </Label>
               <Input
                 id="username"
                 type="text"
                 placeholder="seu_usuario"
+                className="h-11"
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 required
@@ -108,11 +118,14 @@ export default function Register() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password" className="text-sm font-medium">
+                Senha
+              </Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="Mínimo 6 caracteres"
+                className="h-11"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
@@ -121,11 +134,14 @@ export default function Register() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+              <Label htmlFor="confirmPassword" className="text-sm font-medium">
+                Confirmar Senha
+              </Label>
               <Input
                 id="confirmPassword"
                 type="password"
-                placeholder="••••••••"
+                placeholder="Repita sua senha"
+                className="h-11"
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 required
@@ -134,14 +150,14 @@ export default function Register() {
             </div>
 
             {error && (
-              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md flex items-center gap-2">
                 {error}
               </div>
             )}
 
             <Button
               type="submit"
-              className="w-full bg-gradient-primary hover:bg-primary-hover"
+              className="w-full h-11 bg-gradient-primary hover:bg-primary-hover"
               disabled={isLoading}
             >
               {isLoading ? "Criando conta..." : "Criar conta"}

@@ -4,12 +4,13 @@ import { StatCard } from "@/components/StatCard";
 import { AccountCard } from "@/components/AccountCard";
 import { CreditCardCard } from "@/components/CreditCardCard";
 import { TransactionItem } from "@/components/TransactionItem";
-import { Wallet, TrendingUp, TrendingDown, DollarSign, Plus } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, DollarSign, Plus, PiggyBank } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   useAccounts, 
   useCreditCards, 
   useTransactions,
+  useInvestments,
   useDeleteAccount,
   useDeleteCreditCard,
   useDeleteTransaction,
@@ -21,12 +22,14 @@ import { AccountForm } from "@/components/forms/AccountForm";
 import { CreditCardForm } from "@/components/forms/CreditCardForm";
 import { TransactionForm } from "@/components/forms/TransactionForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
 
 const Dashboard = () => {
   const { data: accounts, isLoading: loadingAccounts } = useAccounts();
   const { data: cards, isLoading: loadingCards } = useCreditCards();
   const { data: transactions, isLoading: loadingTransactions } = useTransactions();
+  const { data: investments, isLoading: loadingInvestments } = useInvestments();
   
   const deleteAccount = useDeleteAccount();
   const deleteCard = useDeleteCreditCard();
@@ -108,10 +111,8 @@ const Dashboard = () => {
     setDeleteDialogOpen(true);
   };
 
-  const formatCurrency = (value: number) => `R$ ${value.toFixed(2).replace(".", ",")}`;
-
   const totalBalance = accounts?.reduce((sum, acc) => sum + acc.balance, 0) || 0;
-  const totalInvestments = accounts?.reduce((sum, acc) => sum + acc.investments, 0) || 0;
+  const totalInvestmentsValue = investments?.reduce((sum, inv) => sum + inv.value, 0) || 0;
   
   const totalIncome = transactions
     ?.filter((t) => t.type === "income")
@@ -121,7 +122,7 @@ const Dashboard = () => {
     ?.filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
 
-  const isLoading = loadingAccounts || loadingCards || loadingTransactions;
+  const isLoading = loadingAccounts || loadingCards || loadingTransactions || loadingInvestments;
 
   if (isLoading) {
     return (
@@ -156,15 +157,14 @@ const Dashboard = () => {
         />
         <StatCard
           title="Investimentos"
-          value={formatCurrency(totalInvestments)}
-          icon={TrendingUp}
-          variant="success"
-          trend={{ value: "12.5%", isPositive: true }}
+          value={formatCurrency(totalInvestmentsValue)}
+          icon={PiggyBank}
+          variant="warning"
         />
         <StatCard
           title="Receitas do Mês"
           value={formatCurrency(totalIncome)}
-          icon={DollarSign}
+          icon={TrendingUp}
           variant="success"
         />
         <StatCard
@@ -218,8 +218,12 @@ const Dashboard = () => {
             {cards && cards.length > 0 ? (
               cards.slice(0, 3).map((card) => (
                 <CreditCardCard 
-                  key={card.id} 
-                  {...card}
+                  key={card.id}
+                  name={card.name}
+                  bank={card.bank}
+                  used={card.used / 100}
+                  limit={card.limit / 100}
+                  color={card.color || "#3B82F6"}
                   onEdit={() => handleEditCard(card)}
                   onDelete={() => openDeleteDialog(card.id, "card")}
                 />
