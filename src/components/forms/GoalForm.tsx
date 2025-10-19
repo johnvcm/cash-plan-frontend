@@ -158,7 +158,7 @@ export function GoalForm({ open, onOpenChange, goal }: GoalFormProps) {
             </p>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 pb-4">
             <Label className="text-sm font-medium">Cor da Meta</Label>
             <ColorPicker value={selectedColor} onChange={setSelectedColor} />
             {errors.color && (
@@ -168,7 +168,7 @@ export function GoalForm({ open, onOpenChange, goal }: GoalFormProps) {
             )}
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-2 border-t">
             <Button
               type="button"
               variant="outline"

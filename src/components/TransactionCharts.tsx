@@ -1,6 +1,5 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList } from "recharts";
 import { Transaction } from "@/hooks/use-api";
 import { formatCurrency } from "@/lib/format";
@@ -9,8 +8,6 @@ import { TrendingDown, TrendingUp } from "lucide-react";
 interface TransactionChartsProps {
   transactions: Transaction[];
 }
-
-type PeriodFilter = "7d" | "30d" | "90d" | "12m" | "all";
 
 const COLORS = {
   expense: ["#EF4444", "#F97316", "#F59E0B", "#EAB308", "#84CC16", "#22C55E", "#10B981", "#14B8A6", "#06B6D4", "#0EA5E9"],
@@ -58,27 +55,8 @@ interface LegendProps {
 }
 
 export function TransactionCharts({ transactions }: TransactionChartsProps) {
-  const [period, setPeriod] = useState<PeriodFilter>("30d");
-
-  // Filtrar transações por período
-  const filteredTransactions = useMemo(() => {
-    const now = new Date();
-    const periodMap: Record<PeriodFilter, number> = {
-      "7d": 7,
-      "30d": 30,
-      "90d": 90,
-      "12m": 365,
-      "all": Infinity,
-    };
-
-    const daysAgo = periodMap[period];
-    if (daysAgo === Infinity) return transactions;
-
-    const cutoffDate = new Date(now);
-    cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
-
-    return transactions.filter((t) => new Date(t.date) >= cutoffDate);
-  }, [transactions, period]);
+  // As transações já vêm filtradas da página Lancamentos.tsx
+  const filteredTransactions = transactions;
 
   // Agrupar despesas por categoria
   const expensesByCategory = useMemo(() => {
@@ -253,35 +231,6 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Filtro de Período */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <CardTitle className="text-lg sm:text-xl">Análise de Lançamentos</CardTitle>
-            <Select value={period} onValueChange={(value) => setPeriod(value as PeriodFilter)}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Selecione o período" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7d">{periodLabels["7d"]}</SelectItem>
-                <SelectItem value="30d">{periodLabels["30d"]}</SelectItem>
-                <SelectItem value="90d">{periodLabels["90d"]}</SelectItem>
-                <SelectItem value="12m">{periodLabels["12m"]}</SelectItem>
-                <SelectItem value="all">{periodLabels["all"]}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Período selecionado: <span className="font-medium text-foreground">{periodLabels[period]}</span>
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {filteredTransactions.length} transações neste período
-          </p>
-        </CardContent>
-      </Card>
-
       {/* Seção de Receitas - Barra + Pizza */}
       <div>
         <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-4 flex items-center gap-2">

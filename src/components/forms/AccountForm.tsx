@@ -197,7 +197,7 @@ export function AccountForm({ open, onOpenChange, account }: AccountFormProps) {
             </p>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 pb-4">
             <Label className="text-sm font-medium">Cor da Conta</Label>
             <ColorPicker value={selectedColor} onChange={setSelectedColor} />
             {errors.color && (
@@ -207,7 +207,7 @@ export function AccountForm({ open, onOpenChange, account }: AccountFormProps) {
             )}
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-2 border-t">
             <Button
               type="button"
               variant="outline"

@@ -10,7 +10,7 @@ interface ColorPickerProps {
 
 export function ColorPicker({ value, onChange, className }: ColorPickerProps) {
   return (
-    <div className={cn("grid grid-cols-5 gap-3", className)}>
+    <div className={cn("grid grid-cols-5 gap-3 pb-2", className)}>
       {PRESET_COLORS.map((color) => (
         <button
           key={color.value}
@@ -18,9 +18,9 @@ export function ColorPicker({ value, onChange, className }: ColorPickerProps) {
           onClick={() => onChange(color.value)}
           className={cn(
             "relative h-12 w-full rounded-lg transition-all",
-            "hover:scale-110 active:scale-95",
+            "hover:brightness-110 active:scale-95",
             "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
-            value === color.value && "ring-2 ring-primary ring-offset-2"
+            value === color.value && "ring-2 ring-primary ring-offset-2 scale-105"
           )}
           style={{ backgroundColor: color.value }}
           aria-label={`Selecionar cor ${color.name}`}

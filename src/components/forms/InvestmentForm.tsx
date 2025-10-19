@@ -230,7 +230,7 @@ export function InvestmentForm({ open, onOpenChange, investment }: InvestmentFor
             </p>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 pb-4">
             <Label className="text-sm font-medium">Cor do Investimento</Label>
             <ColorPicker value={selectedColor} onChange={setSelectedColor} />
             {errors.color && (
@@ -240,7 +240,7 @@ export function InvestmentForm({ open, onOpenChange, investment }: InvestmentFor
             )}
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-2 border-t">
             <Button
               type="button"
               variant="outline"

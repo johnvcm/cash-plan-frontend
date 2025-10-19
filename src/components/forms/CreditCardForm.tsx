@@ -221,7 +221,7 @@ export function CreditCardForm({ open, onOpenChange, card }: CreditCardFormProps
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 pb-4">
             <Label className="text-sm font-medium">Cor do Cartão</Label>
             <ColorPicker value={selectedColor} onChange={setSelectedColor} />
             {errors.color && (
@@ -231,7 +231,7 @@ export function CreditCardForm({ open, onOpenChange, card }: CreditCardFormProps
             )}
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-2 border-t">
             <Button
               type="button"
               variant="outline"

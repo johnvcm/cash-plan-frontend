@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TransactionItem } from "@/components/TransactionItem";
 import { TransactionCharts } from "@/components/TransactionCharts";
-import { Plus, Filter, Calendar } from "lucide-react";
+import { Plus, Filter, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -53,6 +53,48 @@ const Lancamentos = () => {
       year: "numeric",
       timeZone: "UTC"
     }).format(date);
+  };
+
+  // Formatar mês curto (para botão)
+  const formatMonthShort = (monthKey: string) => {
+    const [year, month] = monthKey.split("-");
+    const date = new Date(Date.UTC(Number(year), Number(month) - 1, 1));
+    const monthName = new Intl.DateTimeFormat("pt-BR", { 
+      month: "long",
+      timeZone: "UTC"
+    }).format(date);
+    return `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`;
+  };
+
+  // Navegar entre meses
+  const handlePreviousMonth = () => {
+    if (selectedMonth === "all") {
+      // Se está em "Todos", vai para o mês mais recente
+      if (availableMonths.length > 0) {
+        setSelectedMonth(availableMonths[0]);
+      }
+    } else {
+      const currentIndex = availableMonths.indexOf(selectedMonth);
+      if (currentIndex < availableMonths.length - 1) {
+        setSelectedMonth(availableMonths[currentIndex + 1]);
+      }
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === "all") {
+      // Se está em "Todos", vai para o mês mais recente
+      if (availableMonths.length > 0) {
+        setSelectedMonth(availableMonths[0]);
+      }
+    } else {
+      const currentIndex = availableMonths.indexOf(selectedMonth);
+      if (currentIndex > 0) {
+        setSelectedMonth(availableMonths[currentIndex - 1]);
+      } else {
+        // Se está no mês mais recente, não faz nada
+      }
+    }
   };
 
   const handleEdit = (transaction: Transaction) => {
@@ -128,35 +170,65 @@ const Lancamentos = () => {
         </Button>
       </div>
 
-      {/* Filtro de Mês */}
+      {/* Filtro de Período - Navegação Moderna */}
       <Card className="shadow-card bg-gradient-card">
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Calendar className="h-5 w-5 text-primary" />
-              <span className="text-sm font-medium text-foreground">Período:</span>
-            </div>
-            <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 hide-scrollbar w-full">
+          <div className="flex items-center justify-between gap-4">
+            {/* Lado Esquerdo: Navegação */}
+            <div className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary flex-shrink-0" />
+              
+              {/* Botão Anterior */}
               <Button
-                variant={selectedMonth === "all" ? "default" : "outline"}
+                variant="outline"
+                size="sm"
+                onClick={handlePreviousMonth}
+                disabled={selectedMonth !== "all" && availableMonths.indexOf(selectedMonth) === availableMonths.length - 1}
+                className="h-9 w-9 p-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              {/* Mês Atual / Dropdown */}
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="h-9 w-[180px] sm:w-[200px] font-medium">
+                  <SelectValue>
+                    {selectedMonth === "all" ? "Todos os períodos" : formatMonthShort(selectedMonth)}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os períodos</SelectItem>
+                  {availableMonths.map((month) => (
+                    <SelectItem key={month} value={month} className="capitalize">
+                      {formatMonthShort(month)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Botão Próximo */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNextMonth}
+                disabled={selectedMonth !== "all" && availableMonths.indexOf(selectedMonth) === 0}
+                className="h-9 w-9 p-0"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Lado Direito: Botão Rápido "Ver Tudo" */}
+            {selectedMonth !== "all" && (
+              <Button
+                variant="ghost"
                 size="sm"
                 onClick={() => setSelectedMonth("all")}
-                className="whitespace-nowrap flex-shrink-0"
+                className="text-xs whitespace-nowrap"
               >
-                Todos os meses
+                Ver tudo
               </Button>
-              {availableMonths.map((month) => (
-                <Button
-                  key={month}
-                  variant={selectedMonth === month ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedMonth(month)}
-                  className="whitespace-nowrap flex-shrink-0 capitalize"
-                >
-                  {formatMonth(month)}
-                </Button>
-              ))}
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>
