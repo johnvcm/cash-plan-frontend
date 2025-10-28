@@ -44,3 +44,6 @@ export function getAllCategories(type: "income" | "expense", customCategories: s
   return Array.from(allCategories).sort();
 }
 
+
+
+

@@ -32,3 +32,6 @@ export function combineQuantity(value: string, unit: string): string {
   return unit === "unidade" ? value : `${value} ${unit}`;
 }
 
+
+
+
