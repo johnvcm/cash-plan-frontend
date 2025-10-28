@@ -33,6 +33,7 @@ import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CompleteShoppingListDialog } from "@/components/CompleteShoppingListDialog";
+import { UNITS, formatQuantity, combineQuantity } from "@/lib/units";
 
 // Componente separado para o item (evitar hooks dentro de loops)
 interface ShoppingItemCardProps {
@@ -43,6 +44,7 @@ interface ShoppingItemCardProps {
   onSwipe: (itemId: number) => void;
   onUnswipe: () => void;
   onTogglePurchased: (item: ShoppingItem) => void;
+  onEdit: (item: ShoppingItem) => void;
   onDelete: (itemId: number) => void;
 }
 
@@ -62,6 +64,7 @@ function ShoppingItemCard({
   onSwipe,
   onUnswipe,
   onTogglePurchased,
+  onEdit,
   onDelete,
 }: ShoppingItemCardProps) {
   const handlers = useSwipeable({
@@ -97,9 +100,20 @@ function ShoppingItemCard({
       <div
         className={cn(
           "absolute inset-0 flex items-center justify-end px-4 gap-2 transition-opacity pointer-events-none",
-          isCurrentlySwiped ? "opacity-100 bg-destructive/10" : "opacity-0"
+          isCurrentlySwiped ? "opacity-100 bg-primary/10" : "opacity-0"
         )}
       >
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-primary pointer-events-auto"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(item);
+          }}
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
         <Button
           variant="ghost"
           size="sm"
@@ -117,7 +131,7 @@ function ShoppingItemCard({
       <div
         className={cn(
           "relative bg-background border border-border rounded-lg p-3 transition-all duration-300 touch-pan-y",
-          isCurrentlySwiped && "-translate-x-20",
+          isCurrentlySwiped && "-translate-x-32",
           isPurchased && "opacity-60",
           isUpdating && "scale-95 bg-primary/5"
         )}
@@ -194,7 +208,8 @@ const CATEGORIES = [
 interface NewItemForm {
   name: string;
   category: string;
-  quantity: string;
+  quantityValue: string;
+  quantityUnit: string;
   estimated_price: number;
 }
 
@@ -206,6 +221,7 @@ export function ShoppingListDetail({ open, onOpenChange, list }: ShoppingListDet
   const updateList = useUpdateShoppingList();
 
   const [addingItem, setAddingItem] = useState(false);
+  const [editingItem, setEditingItem] = useState<ShoppingItem | null>(null);
   const [swipedItemId, setSwipedItemId] = useState<number | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(CATEGORIES));
   const [editingName, setEditingName] = useState(false);
@@ -219,7 +235,15 @@ export function ShoppingListDetail({ open, onOpenChange, list }: ShoppingListDet
   const [newItem, setNewItem] = useState<NewItemForm>({
     name: "",
     category: "Outros",
-    quantity: "",
+    quantityValue: "",
+    quantityUnit: "unidade",
+    estimated_price: 0,
+  });
+  const [editForm, setEditForm] = useState<NewItemForm>({
+    name: "",
+    category: "Outros",
+    quantityValue: "",
+    quantityUnit: "unidade",
     estimated_price: 0,
   });
 
@@ -300,17 +324,21 @@ export function ShoppingListDetail({ open, onOpenChange, list }: ShoppingListDet
   };
 
   const handleAddItem = async () => {
-    if (!newItem.name || !newItem.quantity) {
+    if (!newItem.name || !newItem.quantityValue) {
       toast.error("Preencha nome e quantidade");
       return;
     }
+
+    // Combinar quantidade e unidade
+    const quantity = combineQuantity(newItem.quantityValue, newItem.quantityUnit);
 
     // Resetar formulário ANTES de criar (para parecer instantâneo)
     const savedNewItem = { ...newItem };
     setNewItem({
       name: "",
       category: "Outros",
-      quantity: "",
+      quantityValue: "",
+      quantityUnit: "unidade",
       estimated_price: 0,
     });
     setAddingItem(false);
@@ -326,7 +354,7 @@ export function ShoppingListDetail({ open, onOpenChange, list }: ShoppingListDet
         data: {
           name: savedNewItem.name,
           category: savedNewItem.category,
-          quantity: savedNewItem.quantity,
+          quantity,
           estimated_price: savedNewItem.estimated_price,
           actual_price: null,
           is_purchased: false,
@@ -351,6 +379,68 @@ export function ShoppingListDetail({ open, onOpenChange, list }: ShoppingListDet
       
       toast.error("Erro ao adicionar item");
     }
+  };
+
+  const handleEditItem = (item: ShoppingItem) => {
+    const { value, unit } = formatQuantity(item.quantity);
+    setEditingItem(item);
+    setEditForm({
+      name: item.name,
+      category: item.category,
+      quantityValue: value,
+      quantityUnit: unit,
+      estimated_price: item.estimated_price,
+    });
+    setSwipedItemId(null); // Fechar swipe
+    // Garantir que categoria está expandida
+    setExpandedCategories((prev) => new Set([...prev, item.category]));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem || !editForm.name || !editForm.quantityValue) {
+      toast.error("Preencha nome e quantidade");
+      return;
+    }
+
+    const quantity = combineQuantity(editForm.quantityValue, editForm.quantityUnit);
+
+    try {
+      await updateItem.mutateAsync({
+        listId: list.id,
+        itemId: editingItem.id,
+        data: {
+          name: editForm.name,
+          category: editForm.category,
+          quantity,
+          estimated_price: editForm.estimated_price,
+        },
+      });
+
+      // Atualizar local items
+      setLocalItems((prev) =>
+        prev.map((item) =>
+          item.id === editingItem.id
+            ? { ...item, name: editForm.name, category: editForm.category, quantity, estimated_price: editForm.estimated_price }
+            : item
+        )
+      );
+
+      setEditingItem(null);
+      toast.success("Item atualizado!");
+    } catch (error) {
+      toast.error("Erro ao atualizar item");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingItem(null);
+    setEditForm({
+      name: "",
+      category: "Outros",
+      quantityValue: "",
+      quantityUnit: "unidade",
+      estimated_price: 0,
+    });
   };
 
   const handleDeleteItem = async (itemId: number) => {
@@ -645,17 +735,121 @@ export function ShoppingListDetail({ open, onOpenChange, list }: ShoppingListDet
                     {isExpanded && (
                       <div className="space-y-2">
                         {items.map((item) => (
-                          <ShoppingItemCard
-                            key={item.id}
-                            item={item}
-                            isCurrentlySwiped={swipedItemId === item.id}
-                            isPurchased={localPurchasedItems.has(item.id)}
-                            isUpdating={updatingItemId === item.id}
-                            onSwipe={setSwipedItemId}
-                            onUnswipe={() => setSwipedItemId(null)}
-                            onTogglePurchased={handleTogglePurchased}
-                            onDelete={handleDeleteItem}
-                          />
+                          editingItem?.id === item.id ? (
+                            // Formulário de edição inline
+                            <div key={item.id} className="bg-primary/5 border-2 border-primary rounded-lg p-3 space-y-3">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="col-span-2">
+                                  <Label htmlFor={`edit-name-${item.id}`} className="text-xs">
+                                    Item
+                                  </Label>
+                                  <Input
+                                    id={`edit-name-${item.id}`}
+                                    value={editForm.name}
+                                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                    className="h-10"
+                                  />
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label htmlFor={`edit-quantity-${item.id}`} className="text-xs">
+                                    Quantidade
+                                  </Label>
+                                  <Input
+                                    id={`edit-quantity-${item.id}`}
+                                    type="number"
+                                    step="0.01"
+                                    value={editForm.quantityValue}
+                                    onChange={(e) => setEditForm({ ...editForm, quantityValue: e.target.value })}
+                                    className="h-10"
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor={`edit-unit-${item.id}`} className="text-xs">
+                                    Unidade
+                                  </Label>
+                                  <Select
+                                    value={editForm.quantityUnit}
+                                    onValueChange={(value) => setEditForm({ ...editForm, quantityUnit: value })}
+                                  >
+                                    <SelectTrigger className="h-10">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {UNITS.map((unit) => (
+                                        <SelectItem key={unit.value} value={unit.value}>
+                                          {unit.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label htmlFor={`edit-category-${item.id}`} className="text-xs">
+                                    Categoria
+                                  </Label>
+                                  <Select
+                                    value={editForm.category}
+                                    onValueChange={(value) => setEditForm({ ...editForm, category: value })}
+                                  >
+                                    <SelectTrigger className="h-10">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {CATEGORIES.map((cat) => (
+                                        <SelectItem key={cat} value={cat}>
+                                          {cat}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label htmlFor={`edit-price-${item.id}`} className="text-xs">
+                                    Preço Estimado
+                                  </Label>
+                                  <CurrencyInput
+                                    id={`edit-price-${item.id}`}
+                                    value={editForm.estimated_price}
+                                    onChange={(value) => setEditForm({ ...editForm, estimated_price: value })}
+                                    className="h-10"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  onClick={handleCancelEdit}
+                                  className="flex-1"
+                                >
+                                  Cancelar
+                                </Button>
+                                <Button 
+                                  onClick={handleSaveEdit} 
+                                  className="flex-1"
+                                  disabled={updateItem.isPending}
+                                >
+                                  {updateItem.isPending ? "Salvando..." : "Salvar"}
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <ShoppingItemCard
+                              key={item.id}
+                              item={item}
+                              isCurrentlySwiped={swipedItemId === item.id}
+                              isPurchased={localPurchasedItems.has(item.id)}
+                              isUpdating={updatingItemId === item.id}
+                              onSwipe={setSwipedItemId}
+                              onUnswipe={() => setSwipedItemId(null)}
+                              onTogglePurchased={handleTogglePurchased}
+                              onEdit={handleEditItem}
+                              onDelete={handleDeleteItem}
+                            />
+                          )
                         ))}
                       </div>
                     )}
@@ -674,22 +868,10 @@ export function ShoppingListDetail({ open, onOpenChange, list }: ShoppingListDet
 
         {/* Adicionar item */}
         <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-3 border-t border-border space-y-3">
-          {/* Botão de Concluir Lista - Só mostra se a lista estiver ativa */}
-          {list.status === "active" && !addingItem && (
-            <Button
-              onClick={() => setCompleteDialogOpen(true)}
-              className="w-full h-11 bg-success hover:bg-success/90"
-              size="lg"
-            >
-              <CheckCircle className="mr-2 h-5 w-5" />
-              Concluir Lista
-            </Button>
-          )}
-
           {addingItem ? (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
-                <div>
+                <div className="col-span-2">
                   <Label htmlFor="item-name" className="text-xs">
                     Item
                   </Label>
@@ -701,17 +883,41 @@ export function ShoppingListDetail({ open, onOpenChange, list }: ShoppingListDet
                     onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                   />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label htmlFor="item-quantity" className="text-xs">
                     Quantidade
                   </Label>
                   <Input
                     id="item-quantity"
-                    placeholder="Ex: 5kg"
+                    placeholder="Ex: 5"
+                    type="number"
+                    step="0.01"
                     className="h-10"
-                    value={newItem.quantity}
-                    onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
+                    value={newItem.quantityValue}
+                    onChange={(e) => setNewItem({ ...newItem, quantityValue: e.target.value })}
                   />
+                </div>
+                <div>
+                  <Label htmlFor="item-unit" className="text-xs">
+                    Unidade
+                  </Label>
+                  <Select
+                    value={newItem.quantityUnit}
+                    onValueChange={(value) => setNewItem({ ...newItem, quantityUnit: value })}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {UNITS.map((unit) => (
+                        <SelectItem key={unit.value} value={unit.value}>
+                          {unit.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -770,6 +976,29 @@ export function ShoppingListDetail({ open, onOpenChange, list }: ShoppingListDet
               Adicionar Item
             </Button>
           )}
+
+          {/* Botão de Concluir Lista - Só mostra se a lista estiver ativa e o form fechado */}
+          {list.status === "active" && !addingItem && (
+            <Button
+              onClick={() => setCompleteDialogOpen(true)}
+              className="w-full h-11 bg-success hover:bg-success/90"
+              size="lg"
+            >
+              <CheckCircle className="mr-2 h-5 w-5" />
+              Concluir Lista
+            </Button>
+          )}
+
+          {/* Botão de Fechar */}
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="w-full h-11"
+            size="lg"
+          >
+            <X className="mr-2 h-5 w-5" />
+            Fechar
+          </Button>
         </div>
       </DialogContent>
 

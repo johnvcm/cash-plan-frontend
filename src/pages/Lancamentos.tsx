@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TransactionItem } from "@/components/TransactionItem";
 import { TransactionCharts } from "@/components/TransactionCharts";
-import { Plus, Filter, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Calendar, ChevronLeft, ChevronRight, ArrowUpDown, Search, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -16,19 +17,39 @@ import { useTransactions, useDeleteTransaction, Transaction } from "@/hooks/use-
 import { TransactionForm } from "@/components/forms/TransactionForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { formatCurrency } from "@/lib/format";
+import { getUniqueCategories } from "@/lib/categories";
 import { toast } from "sonner";
 
 const Lancamentos = () => {
   const { data: transactions, isLoading } = useTransactions();
   const deleteTransaction = useDeleteTransaction();
+  const pageScrollPositionRef = useRef<number>(0);
   
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "highest" | "lowest">("newest");
   const [formOpen, setFormOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<number | null>(null);
+
+  // Salvar posição do scroll da página antes de re-renderizar
+  useEffect(() => {
+    // Salvar posição atual antes da mudança
+    pageScrollPositionRef.current = window.scrollY;
+    
+    // Restaurar posição após o re-render
+    const timeoutId = setTimeout(() => {
+      window.scrollTo({
+        top: pageScrollPositionRef.current,
+        behavior: 'instant' as ScrollBehavior,
+      });
+    }, 0);
+    
+    return () => clearTimeout(timeoutId);
+  }, [filter, categoryFilter, sortOrder]);
 
   // Extrair meses únicos das transações
   const availableMonths = useMemo(() => {
@@ -42,6 +63,12 @@ const Lancamentos = () => {
     });
     
     return Array.from(monthsSet).sort().reverse(); // Mais recente primeiro
+  }, [transactions]);
+
+  // Extrair categorias únicas das transações
+  const availableCategories = useMemo(() => {
+    if (!transactions) return [];
+    return getUniqueCategories(transactions);
   }, [transactions]);
 
   // Formatar mês para exibição
@@ -120,20 +147,45 @@ const Lancamentos = () => {
     setFormOpen(true);
   };
 
-  const filteredTransactions = transactions?.filter((t) => {
-    const matchesFilter = filter === "all" || t.type === filter;
-    const matchesSearch = t.description.toLowerCase().includes(search.toLowerCase());
+  const filteredTransactions = useMemo(() => {
+    if (!transactions) return [];
     
-    // Filtro de mês
-    let matchesMonth = true;
-    if (selectedMonth !== "all") {
-      const date = new Date(t.date);
-      const transactionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      matchesMonth = transactionMonth === selectedMonth;
-    }
-    
-    return matchesFilter && matchesSearch && matchesMonth;
-  });
+    let filtered = transactions.filter((t) => {
+      const matchesFilter = filter === "all" || t.type === filter;
+      const matchesSearch = t.description.toLowerCase().includes(search.toLowerCase());
+      
+      // Filtro de mês
+      let matchesMonth = true;
+      if (selectedMonth !== "all") {
+        const date = new Date(t.date);
+        const transactionMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        matchesMonth = transactionMonth === selectedMonth;
+      }
+      
+      // Filtro de categoria
+      const matchesCategory = categoryFilter === "all" || t.category === categoryFilter;
+      
+      return matchesFilter && matchesSearch && matchesMonth && matchesCategory;
+    });
+
+    // Ordenar
+    filtered.sort((a, b) => {
+      switch (sortOrder) {
+        case "newest":
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        case "oldest":
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+        case "highest":
+          return Math.abs(b.amount) - Math.abs(a.amount);
+        case "lowest":
+          return Math.abs(a.amount) - Math.abs(b.amount);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [transactions, filter, search, selectedMonth, categoryFilter, sortOrder]);
 
   // Calcular totais baseados nas transações filtradas
   const totalIncome = filteredTransactions
@@ -266,31 +318,69 @@ const Lancamentos = () => {
       )}
 
       <Card className="shadow-card">
-        <CardHeader>
-          <div className="flex flex-col gap-3">
-            <CardTitle className="text-lg sm:text-xl">Todos os Lançamentos</CardTitle>
-            <div className="flex flex-col sm:flex-row gap-2">
+        <CardHeader className="space-y-4">
+          <CardTitle className="text-lg sm:text-xl">Todos os Lançamentos</CardTitle>
+          
+          {/* Tabs para Tipo de Transação */}
+          <Tabs value={filter} onValueChange={setFilter} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="all" className="text-xs sm:text-sm">
+                Todos
+              </TabsTrigger>
+              <TabsTrigger value="income" className="text-xs sm:text-sm">
+                Receitas
+              </TabsTrigger>
+              <TabsTrigger value="expense" className="text-xs sm:text-sm">
+                Despesas
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {/* Linha de Filtros Compacta */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            {/* Campo de Busca com Ícone */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
                 placeholder="Buscar..." 
-                className="flex-1 sm:max-w-xs" 
+                className="pl-9 w-full" 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Filtrar" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="income">Receitas</SelectItem>
-                  <SelectItem value="expense">Despesas</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
+
+            {/* Filtro de Categoria */}
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <Tag className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {availableCategories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Ordenação */}
+            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as "newest" | "oldest" | "highest" | "lowest")}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <ArrowUpDown className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Ordenar" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Data: Recentes</SelectItem>
+                <SelectItem value="oldest">Data: Antigos</SelectItem>
+                <SelectItem value="highest">Valor: Maior</SelectItem>
+                <SelectItem value="lowest">Valor: Menor</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
-        <CardContent className="space-y-1 sm:space-y-2">
+        <CardContent className="h-[500px] overflow-y-auto space-y-1 sm:space-y-2 px-4 sm:px-6">
           {filteredTransactions && filteredTransactions.length > 0 ? (
             filteredTransactions.map((transaction) => (
               <TransactionItem
@@ -304,9 +394,11 @@ const Lancamentos = () => {
               />
             ))
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              Nenhum lançamento encontrado
-            </p>
+            <div className="flex items-center justify-center h-full">
+              <p className="text-sm text-muted-foreground text-center">
+                Nenhum lançamento encontrado
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>

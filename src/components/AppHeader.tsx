@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSwipeMenuContext } from "@/contexts/SwipeMenuContext";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { useSwipeable } from "react-swipeable";
 
 const menuItems = [
   { title: "Home", url: "/", icon: Home },
@@ -24,8 +25,21 @@ export function AppHeader() {
     window.location.href = "/login";
   };
 
+  // Swipe handlers para fechar o sidebar arrastando para a esquerda
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => {
+      if (mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    },
+    trackMouse: false, // Apenas touch, não mouse
+    trackTouch: true,
+    delta: 50, // Distância mínima para reconhecer o swipe
+    preventScrollOnSwipe: false,
+  });
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         {/* Menu Mobile - Hamburguer */}
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -42,7 +56,7 @@ export function AppHeader() {
             <SheetDescription className="sr-only">
               Menu principal para navegar entre as páginas do aplicativo
             </SheetDescription>
-            <div className="flex flex-col h-full">
+            <div {...swipeHandlers} className="flex flex-col h-full">
               {/* Header do Menu Mobile */}
               <div className="flex items-center gap-2 pb-4 mb-4 border-b">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary">
@@ -58,7 +72,7 @@ export function AppHeader() {
               {user && (
                 <div className="mb-4 p-3 bg-muted/50 rounded-lg">
                   <p className="text-xs text-muted-foreground">Usuário</p>
-                  <p className="font-medium text-foreground">{user.username}</p>
+                  <p className="font-medium text-foreground">{user.full_name || user.username}</p>
                 </div>
               )}
 
@@ -135,7 +149,7 @@ export function AppHeader() {
         <div className="hidden lg:flex items-center gap-3 ml-4">
           {user && (
             <span className="text-sm text-muted-foreground">
-              Olá, <span className="font-medium text-foreground">{user.username}</span>
+              Olá, <span className="font-medium text-foreground">{user.full_name || user.username}</span>
             </span>
           )}
           <Button

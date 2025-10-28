@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList } from "recharts";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList } from "recharts";
 import { Transaction } from "@/hooks/use-api";
 import { formatCurrency } from "@/lib/format";
 import { TrendingDown, TrendingUp } from "lucide-react";
@@ -57,6 +58,9 @@ interface LegendProps {
 export function TransactionCharts({ transactions }: TransactionChartsProps) {
   // As transações já vêm filtradas da página Lancamentos.tsx
   const filteredTransactions = transactions;
+  
+  // Estado para controlar qual gráfico exibir
+  const [chartType, setChartType] = useState<"income" | "expense">("expense");
 
   // Agrupar despesas por categoria
   const expensesByCategory = useMemo(() => {
@@ -154,7 +158,7 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
     return Array.from(categories);
   }, [expensesByCategory, incomesByCategory]);
 
-  const periodLabels: Record<PeriodFilter, string> = {
+  const periodLabels: Record<string, string> = {
     "7d": "Últimos 7 dias",
     "30d": "Últimos 30 dias",
     "90d": "Últimos 90 dias",
@@ -231,7 +235,31 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Card de Análise com Tabs */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <div className="flex flex-col gap-4">
+            <CardTitle className="text-lg sm:text-xl">Análise de Lançamentos</CardTitle>
+            
+            {/* Tabs para selecionar tipo de gráfico */}
+            <Tabs value={chartType} onValueChange={(value) => setChartType(value as "income" | "expense")} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="income" className="text-xs sm:text-sm">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Receitas
+                </TabsTrigger>
+                <TabsTrigger value="expense" className="text-xs sm:text-sm">
+                  <TrendingDown className="h-4 w-4 mr-2" />
+                  Despesas
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </CardHeader>
+      </Card>
+
       {/* Seção de Receitas - Barra + Pizza */}
+      {chartType === "income" && (
       <div>
         <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-success" />
@@ -311,7 +339,7 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
             <CardContent>
               {incomesByCategory.length > 0 ? (
               <>
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
                     <Pie
                       data={incomesByCategory}
@@ -328,29 +356,19 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
                       ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend
-                      verticalAlign="bottom"
-                      height={36}
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      formatter={(value: string, entry: any) => (
-                        <span className="text-xs">
-                          {value} ({entry?.payload?.percentage?.toFixed(1) || 0}%)
-                        </span>
-                      )}
-                    />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="mt-4 space-y-2">
-                  {incomesByCategory.slice(0, 5).map((cat) => (
-                    <div key={cat.name} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
+                <div className="mt-6 space-y-2 max-h-48 overflow-y-auto">
+                  {incomesByCategory.map((cat) => (
+                    <div key={cat.name} className="flex items-center justify-between text-sm py-1">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
                         <div
-                          className="w-3 h-3 rounded-full"
+                          className="w-3 h-3 rounded-full flex-shrink-0"
                           style={{ backgroundColor: categoryColors[cat.name] }}
                         />
-                        <span className="text-muted-foreground">{cat.name}</span>
+                        <span className="text-muted-foreground truncate">{cat.name}</span>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex-shrink-0 ml-2">
                         <p className="font-medium">{formatCurrency(cat.value)}</p>
                         <p className="text-xs text-muted-foreground">{cat.percentage.toFixed(1)}%</p>
                       </div>
@@ -367,8 +385,10 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
           </Card>
         </div>
       </div>
+      )}
 
       {/* Seção de Despesas - Barra + Pizza */}
+      {chartType === "expense" && (
       <div>
         <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
           <TrendingDown className="h-5 w-5 text-destructive" />
@@ -448,7 +468,7 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
             <CardContent>
               {expensesByCategory.length > 0 ? (
               <>
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
                     <Pie
                       data={expensesByCategory}
@@ -465,29 +485,19 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
                       ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend
-                      verticalAlign="bottom"
-                      height={36}
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      formatter={(value: string, entry: any) => (
-                        <span className="text-xs">
-                          {value} ({entry?.payload?.percentage?.toFixed(1) || 0}%)
-                        </span>
-                      )}
-                    />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="mt-4 space-y-2">
-                  {expensesByCategory.slice(0, 5).map((cat) => (
-                    <div key={cat.name} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
+                <div className="mt-6 space-y-2 max-h-48 overflow-y-auto">
+                  {expensesByCategory.map((cat) => (
+                    <div key={cat.name} className="flex items-center justify-between text-sm py-1">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
                         <div
-                          className="w-3 h-3 rounded-full"
+                          className="w-3 h-3 rounded-full flex-shrink-0"
                           style={{ backgroundColor: categoryColors[cat.name] }}
                         />
-                        <span className="text-muted-foreground">{cat.name}</span>
+                        <span className="text-muted-foreground truncate">{cat.name}</span>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex-shrink-0 ml-2">
                         <p className="font-medium">{formatCurrency(cat.value)}</p>
                         <p className="text-xs text-muted-foreground">{cat.percentage.toFixed(1)}%</p>
                       </div>
@@ -504,6 +514,7 @@ export function TransactionCharts({ transactions }: TransactionChartsProps) {
           </Card>
         </div>
       </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -21,9 +21,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { useCreateTransaction, useUpdateTransaction, Transaction, useAccounts } from "@/hooks/use-api";
+import { useCreateTransaction, useUpdateTransaction, Transaction, useAccounts, useCategories, useCreateCategory } from "@/hooks/use-api";
 import { toast } from "sonner";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Plus } from "lucide-react";
+import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "@/lib/categories";
 
 const transactionSchema = z.object({
   description: z.string().min(1, "Descrição é obrigatória"),
@@ -47,8 +48,11 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
   const { data: accounts } = useAccounts();
+  const createCategory = useCreateCategory();
 
   const [amount, setAmount] = useState(transaction?.amount || 0);
+  const [addingCustomCategory, setAddingCustomCategory] = useState(false);
+  const [customCategoryInput, setCustomCategoryInput] = useState("");
 
   const {
     register,
@@ -70,6 +74,20 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
   });
 
   const type = watch("type");
+  const selectedCategory = watch("category");
+
+  // Buscar categorias da API
+  const { data: apiCategories } = useCategories(type);
+
+  // Mesclar categorias padrão (do código) com categorias da API
+  const availableCategories = useMemo(() => {
+    const defaultCategories = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+    const apiCategoryNames = apiCategories?.map(cat => cat.name) || [];
+    
+    // Mesclar e remover duplicatas
+    const allCategories = new Set([...defaultCategories, ...apiCategoryNames]);
+    return Array.from(allCategories).sort();
+  }, [type, apiCategories]);
 
   useEffect(() => {
     if (transaction) {
@@ -98,6 +116,37 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
   useEffect(() => {
     setValue("amount", amount);
   }, [amount, setValue]);
+
+  const handleAddCustomCategory = async () => {
+    if (!customCategoryInput.trim()) {
+      toast.error("Digite um nome para a categoria");
+      return;
+    }
+
+    try {
+      // Salvar categoria na API
+      await createCategory.mutateAsync({
+        name: customCategoryInput.trim(),
+        type: type,
+      });
+
+      // Selecionar a categoria recém-criada
+      setValue("category", customCategoryInput.trim());
+      setCustomCategoryInput("");
+      setAddingCustomCategory(false);
+      toast.success("Categoria criada com sucesso!");
+    } catch (error: any) {
+      // Se a categoria já existe, apenas seleciona ela
+      if (error?.response?.status === 400) {
+        setValue("category", customCategoryInput.trim());
+        setCustomCategoryInput("");
+        setAddingCustomCategory(false);
+        toast.info("Categoria selecionada!");
+      } else {
+        toast.error("Erro ao criar categoria");
+      }
+    }
+  };
 
   const onSubmit = async (data: TransactionFormData) => {
     try {
@@ -199,16 +248,81 @@ export function TransactionForm({ open, onOpenChange, transaction }: Transaction
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="category" className="text-sm font-medium">
-              Categoria
-            </Label>
-            <Input
-              id="category"
-              placeholder={type === "income" ? "Ex: Renda, Investimentos..." : "Ex: Alimentação, Moradia, Transporte..."}
-              className="h-11"
-              autoComplete="off"
-              {...register("category")}
-            />
+            <div className="flex items-center justify-between">
+              <Label htmlFor="category" className="text-sm font-medium">
+                Categoria
+              </Label>
+              {!addingCustomCategory && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs"
+                  onClick={() => setAddingCustomCategory(true)}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Nova
+                </Button>
+              )}
+            </div>
+
+            {addingCustomCategory ? (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nome da nova categoria"
+                  value={customCategoryInput}
+                  onChange={(e) => setCustomCategoryInput(e.target.value)}
+                  className="h-11"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddCustomCategory();
+                    } else if (e.key === "Escape") {
+                      setAddingCustomCategory(false);
+                      setCustomCategoryInput("");
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleAddCustomCategory}
+                  className="h-11"
+                >
+                  Adicionar
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setAddingCustomCategory(false);
+                    setCustomCategoryInput("");
+                  }}
+                  className="h-11"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            ) : (
+              <Select
+                value={selectedCategory}
+                onValueChange={(value) => setValue("category", value)}
+              >
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Selecione uma categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableCategories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
             {errors.category && (
               <p className="text-sm text-destructive flex items-center gap-1">
                 {errors.category.message}

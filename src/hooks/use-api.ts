@@ -429,3 +429,67 @@ export const useDeleteShoppingItem = () => {
   });
 };
 
+// ==================== CATEGORIES ====================
+
+export interface Category {
+  id: number;
+  user_id: number;
+  name: string;
+  type: "income" | "expense";
+  is_default: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export const useCategories = (type?: "income" | "expense") => {
+  const params = type ? `?type=${type}` : "";
+  
+  return useQuery<Category[]>({
+    queryKey: ["categories", type],
+    queryFn: () => api.get(`/categories${params}`),
+  });
+};
+
+export const useCategory = (id: number) => {
+  return useQuery<Category>({
+    queryKey: ["categories", id],
+    queryFn: () => api.get(`/categories/${id}`),
+    enabled: !!id,
+  });
+};
+
+export const useCreateCategory = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: Omit<Category, "id" | "user_id" | "is_default" | "created_at" | "updated_at">) =>
+      api.post("/categories", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+};
+
+export const useUpdateCategory = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<Omit<Category, "id" | "user_id" | "is_default" | "created_at" | "updated_at">> }) =>
+      api.put(`/categories/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+};
+
+export const useDeleteCategory = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: number) => api.delete(`/categories/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+};
+
