@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +9,8 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SwipeMenuProvider, useSwipeMenuContext } from "@/contexts/SwipeMenuContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useCapacitorPlugins } from "@/hooks/use-capacitor-plugins";
+import { FloatingActionButton } from "@/components/FloatingActionButton";
+import { GenAiAssistantDialog } from "@/components/GenAiAssistantDialog";
 import Dashboard from "./pages/Dashboard";
 import Lancamentos from "./pages/Lancamentos";
 import Contas from "./pages/Contas";
@@ -23,6 +26,7 @@ const queryClient = new QueryClient();
 
 function ProtectedLayout() {
   const { swipeHandlers } = useSwipeMenuContext();
+  const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
   
   return (
     <div className="min-h-screen w-full flex flex-col">
@@ -41,6 +45,15 @@ function ProtectedLayout() {
           </Routes>
         </div>
       </main>
+      
+      {/* Botão flutuante do assistente IA */}
+      <FloatingActionButton onClick={() => setAiAssistantOpen(true)} />
+      
+      {/* Dialog do assistente IA */}
+      <GenAiAssistantDialog 
+        open={aiAssistantOpen} 
+        onOpenChange={setAiAssistantOpen} 
+      />
     </div>
   );
 }
