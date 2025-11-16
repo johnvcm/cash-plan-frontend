@@ -3,66 +3,87 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountCard } from "@/components/AccountCard";
 import { Plus } from "lucide-react";
+import { useAccounts, useDeleteAccount, Account } from "@/hooks/use-api";
+import { AccountForm } from "@/components/forms/AccountForm";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { formatCurrency } from "@/lib/format";
+import { toast } from "sonner";
 
 const Contas = () => {
-  const [accounts] = useState([
-    {
-      id: 1,
-      name: "Banco do Brasil",
-      bank: "Banco do Brasil",
-      balance: "R$ 1.978,26",
-      investments: "R$ 0,00",
-      color: "#FCD34D",
-    },
-    {
-      id: 2,
-      name: "Sicoob",
-      bank: "Sicoob",
-      balance: "R$ 460,75",
-      investments: "R$ 981,47",
-      color: "#10B981",
-    },
-    {
-      id: 3,
-      name: "Nubank",
-      bank: "Nubank",
-      balance: "R$ 3.250,00",
-      investments: "R$ 5.000,00",
-      color: "#8B5CF6",
-    },
-  ]);
+  const { data: accounts, isLoading, error } = useAccounts();
+  const deleteAccount = useDeleteAccount();
+  
+  const [formOpen, setFormOpen] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<Account | undefined>();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState<number | null>(null);
 
-  const totalBalance = accounts.reduce((sum, acc) => {
-    const balance = parseFloat(acc.balance.replace("R$ ", "").replace(".", "").replace(",", "."));
-    return sum + balance;
-  }, 0);
+  const handleEdit = (account: Account) => {
+    setSelectedAccount(account);
+    setFormOpen(true);
+  };
 
-  const totalInvestments = accounts.reduce((sum, acc) => {
-    const investments = parseFloat(
-      acc.investments.replace("R$ ", "").replace(".", "").replace(",", ".")
+  const handleDelete = async () => {
+    if (accountToDelete) {
+      try {
+        await deleteAccount.mutateAsync(accountToDelete);
+        toast.success("Conta deletada com sucesso!");
+        setDeleteDialogOpen(false);
+        setAccountToDelete(null);
+      } catch (error) {
+        toast.error("Erro ao deletar conta");
+      }
+    }
+  };
+
+  const handleNewAccount = () => {
+    setSelectedAccount(undefined);
+    setFormOpen(true);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg text-muted-foreground">Carregando contas...</div>
+      </div>
     );
-    return sum + investments;
-  }, 0);
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg text-destructive">
+          Erro ao carregar contas. Verifique se o backend está rodando.
+        </div>
+      </div>
+    );
+  }
+
+  const totalBalance = accounts?.reduce((sum, acc) => sum + acc.balance, 0) || 0;
+  const totalInvestments = accounts?.reduce((sum, acc) => sum + acc.investments, 0) || 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Minhas Contas</h1>
-          <p className="text-muted-foreground">Gerencie suas contas bancárias</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Minhas Contas</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Gerencie suas contas bancárias</p>
         </div>
-        <Button className="bg-gradient-primary hover:bg-primary-hover">
+        <Button
+          className="bg-gradient-primary hover:bg-primary-hover w-full sm:w-auto"
+          onClick={handleNewAccount}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Adicionar Conta
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
         <Card className="shadow-card">
           <CardContent className="p-6">
             <p className="text-sm font-medium text-muted-foreground">Total em contas correntes</p>
             <p className="text-3xl font-bold text-foreground mt-2">
-              R$ {totalBalance.toFixed(2).replace(".", ",")}
+              {formatCurrency(totalBalance)}
             </p>
           </CardContent>
         </Card>
@@ -70,7 +91,7 @@ const Contas = () => {
           <CardContent className="p-6">
             <p className="text-sm font-medium text-muted-foreground">Total em investimentos</p>
             <p className="text-3xl font-bold text-success mt-2">
-              R$ {totalInvestments.toFixed(2).replace(".", ",")}
+              {formatCurrency(totalInvestments)}
             </p>
           </CardContent>
         </Card>
@@ -78,14 +99,47 @@ const Contas = () => {
 
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Contas Bancárias</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Contas Bancárias</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {accounts.map((account) => (
-            <AccountCard key={account.id} {...account} />
-          ))}
+        <CardContent className="space-y-3 sm:space-y-4">
+          {accounts && accounts.length > 0 ? (
+            accounts.map((account) => (
+              <AccountCard
+                key={account.id}
+                name={account.name}
+                bank={account.bank}
+                balance={formatCurrency(account.balance)}
+                investments={formatCurrency(account.investments)}
+                color={account.color || "#000000"}
+                onEdit={() => handleEdit(account)}
+                onDelete={() => {
+                  setAccountToDelete(account.id);
+                  setDeleteDialogOpen(true);
+                }}
+              />
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Nenhuma conta cadastrada
+            </p>
+          )}
         </CardContent>
       </Card>
+
+      <AccountForm
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        account={selectedAccount}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDelete}
+        title="Deletar Conta"
+        description="Tem certeza que deseja deletar esta conta? Esta ação não pode ser desfeita."
+        isLoading={deleteAccount.isPending}
+      />
     </div>
   );
 };

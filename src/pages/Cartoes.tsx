@@ -3,60 +3,73 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCardCard } from "@/components/CreditCardCard";
 import { Plus } from "lucide-react";
+import { useCreditCards, useDeleteCreditCard, CreditCard } from "@/hooks/use-api";
+import { CreditCardForm } from "@/components/forms/CreditCardForm";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { formatCurrency } from "@/lib/format";
+import { toast } from "sonner";
 
 const Cartoes = () => {
-  const [cards] = useState([
-    {
-      id: 1,
-      name: "Banco do Brasil GOLD4760",
-      bank: "OUROCARD VISA INTERNATIONAL",
-      used: 0,
-      limit: 80000,
-      color: "#FCD34D",
-    },
-    {
-      id: 2,
-      name: "Sicoob B620",
-      bank: "SICOOB MASTERCARD CLÁSSICO PRO",
-      used: 0,
-      limit: 815000,
-      color: "#3B82F6",
-    },
-    {
-      id: 3,
-      name: "Itaú BLACK2898",
-      bank: "ITAÚ MASTERCARD BLACK",
-      used: 15000,
-      limit: 50000,
-      color: "#F97316",
-    },
-  ]);
+  const { data: cards, isLoading } = useCreditCards();
+  const deleteCard = useDeleteCreditCard();
+  
+  const [formOpen, setFormOpen] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<CreditCard | undefined>();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [cardToDelete, setCardToDelete] = useState<number | null>(null);
 
-  const totalUsed = cards.reduce((sum, card) => sum + card.used, 0);
-  const totalLimit = cards.reduce((sum, card) => sum + card.limit, 0);
-  const availableLimit = totalLimit - totalUsed;
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
+  const handleEdit = (card: CreditCard) => {
+    setSelectedCard(card);
+    setFormOpen(true);
   };
 
+  const handleDelete = async () => {
+    if (cardToDelete) {
+      try {
+        await deleteCard.mutateAsync(cardToDelete);
+        toast.success("Cartão deletado com sucesso!");
+        setDeleteDialogOpen(false);
+        setCardToDelete(null);
+      } catch (error) {
+        toast.error("Erro ao deletar cartão");
+      }
+    }
+  };
+
+  const handleNewCard = () => {
+    setSelectedCard(undefined);
+    setFormOpen(true);
+  };
+
+  const totalUsed = cards?.reduce((sum, card) => sum + card.used, 0) || 0;
+  const totalLimit = cards?.reduce((sum, card) => sum + card.limit, 0) || 0;
+  const availableLimit = totalLimit - totalUsed;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-lg text-muted-foreground">Carregando cartões...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Cartões de Crédito</h1>
-          <p className="text-muted-foreground">Gerencie seus cartões e limites</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Cartões de Crédito</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Gerencie seus cartões e limites</p>
         </div>
-        <Button className="bg-gradient-primary hover:bg-primary-hover">
+        <Button
+          className="bg-gradient-primary hover:bg-primary-hover w-full sm:w-auto"
+          onClick={handleNewCard}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Adicionar Cartão
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
         <Card className="shadow-card">
           <CardContent className="p-6">
             <p className="text-sm font-medium text-muted-foreground">Total utilizado</p>
@@ -85,14 +98,47 @@ const Cartoes = () => {
 
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Meus Cartões</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Meus Cartões</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {cards.map((card) => (
-            <CreditCardCard key={card.id} {...card} />
-          ))}
+        <CardContent className="space-y-3 sm:space-y-4">
+          {cards && cards.length > 0 ? (
+            cards.map((card) => (
+              <CreditCardCard
+                key={card.id}
+                name={card.name}
+                bank={card.bank}
+                used={card.used / 100}
+                limit={card.limit / 100}
+                color={card.color || "#3B82F6"}
+                onEdit={() => handleEdit(card)}
+                onDelete={() => {
+                  setCardToDelete(card.id);
+                  setDeleteDialogOpen(true);
+                }}
+              />
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Nenhum cartão cadastrado
+            </p>
+          )}
         </CardContent>
       </Card>
+
+      <CreditCardForm
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        card={selectedCard}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDelete}
+        title="Deletar Cartão"
+        description="Tem certeza que deseja deletar este cartão? Esta ação não pode ser desfeita."
+        isLoading={deleteCard.isPending}
+      />
     </div>
   );
 };

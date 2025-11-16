@@ -29,19 +29,19 @@ export function StatCard({ title, value, icon: Icon, trend, variant = "default" 
 
   return (
     <Card className={`${variantClasses[variant]} shadow-card hover:shadow-hover transition-shadow`}>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-2xl font-bold text-foreground">{value}</p>
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <div className="space-y-1 flex-1 min-w-0">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-xl sm:text-2xl font-bold text-foreground truncate">{value}</p>
             {trend && (
               <p className={`text-xs ${trend.isPositive ? "text-success" : "text-destructive"}`}>
                 {trend.isPositive ? "↑" : "↓"} {trend.value}
               </p>
             )}
           </div>
-          <div className={`rounded-full p-3 ${variant === "default" ? "bg-primary/10" : "bg-background/50"}`}>
-            <Icon className={`h-6 w-6 ${iconVariants[variant]}`} />
+          <div className={`rounded-full p-2 sm:p-3 flex-shrink-0 ${variant === "default" ? "bg-primary/10" : "bg-background/50"}`}>
+            <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${iconVariants[variant]}`} />
           </div>
         </div>
       </CardContent>
